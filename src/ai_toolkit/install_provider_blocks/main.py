@@ -1,10 +1,9 @@
-"""Install Provider Blocks — block OpenAI & Anthropic providers on OMP and Cline.
+"""Install Provider Blocks — allow OpenAI & Anthropic providers on OMP, Cline, and Pi.
 
-Blocks OpenAI and Anthropic access on both agents by:
-  - Adding to disabledProviders in ~/.omp/agent/models.yml       (OMP)
-  - Removing provider entries from ~/.cline/data/settings/providers.json (Cline)
-
-No API keys or .env configuration needed — just run and they're blocked.
+Ensures OpenAI and Anthropic access is allowed on all agents by:
+  - Removing from disabledProviders in ~/.omp/agent/models.yml       (OMP)
+  - Removing from disabledProviders in ~/.pi/agent/models.json       (Pi)
+  - Ensuring provider entries are not removed from Cline providers.json (Cline)
 """
 
 import json
@@ -15,8 +14,10 @@ import yaml
 
 OMP_MODELS_PATH = Path.home() / ".omp" / "agent" / "models.yml"
 CLINE_PROVIDERS_PATH = Path.home() / ".cline" / "data" / "settings" / "providers.json"
+PI_MODELS_PATH = Path.home() / ".pi" / "agent" / "models.json"
 
-_BLOCKED_PROVIDERS = ("openai", "anthropic")
+_ALLOWED_PROVIDERS = ("openai", "anthropic")
+_BLOCKED_PROVIDERS = _ALLOWED_PROVIDERS
 
 
 def _read_yaml(path: Path) -> dict:
@@ -69,80 +70,96 @@ def _write_json(path: Path, data: dict) -> bool:
         return False
 
 
-def _block_omp_providers(models_path: Path) -> bool:
-    """Block OpenAI and Anthropic in OMP by adding them to disabledProviders."""
+def _allow_omp_providers(models_path: Path) -> bool:
+    """Allow OpenAI and Anthropic in OMP by removing them from disabledProviders."""
     try:
         data = _read_yaml(models_path)
         disabled: list[str] = data.get("disabledProviders", [])
-
-        newly_blocked: list[str] = []
-        for provider in _BLOCKED_PROVIDERS:
-            if provider not in disabled:
-                disabled.append(provider)
-                newly_blocked.append(provider)
-
-        if newly_blocked:
-            data["disabledProviders"] = disabled
-            print(f"  OMP: blocked {', '.join(newly_blocked)}")
+        newly_allowed: list[str] = [p for p in _ALLOWED_PROVIDERS if p in disabled]
+        if newly_allowed:
+            data["disabledProviders"] = [p for p in disabled if p not in _ALLOWED_PROVIDERS]
+            print(f"  OMP: allowed {', '.join(newly_allowed)}")
         else:
-            print("  OMP: openai + anthropic already blocked")
-
+            print("  OMP: openai + anthropic already allowed")
         return _write_yaml(models_path, data)
     except Exception as e:
         print(f"Error updating OMP models.yml: {e}", file=sys.stderr)
         return False
 
 
-def _block_cline_providers(providers_path: Path) -> bool:
-    """Block OpenAI and Anthropic in Cline by removing them from providers."""
+def _allow_pi_providers(models_path: Path) -> bool:
+    """Allow OpenAI and Anthropic in Pi by removing them from disabledProviders."""
+    try:
+        data = _read_json(models_path)
+        if not data:
+            print("  Pi: no models.json found, nothing to allow")
+            return True
+        disabled: list[str] = data.get("disabledProviders", [])
+        if not disabled:
+            print("  Pi: openai + anthropic already allowed")
+            return True
+        newly_allowed = [p for p in _ALLOWED_PROVIDERS if p in disabled]
+        if newly_allowed:
+            data["disabledProviders"] = [p for p in disabled if p not in _ALLOWED_PROVIDERS]
+            print(f"  Pi: allowed {', '.join(newly_allowed)}")
+            return _write_json(models_path, data)
+        print("  Pi: openai + anthropic already allowed")
+        return True
+    except Exception as e:
+        print(f"Error updating Pi models.json: {e}", file=sys.stderr)
+        return False
+
+
+def _allow_cline_providers(providers_path: Path) -> bool:
+    """Allow OpenAI and Anthropic in Cline — ensures they are not removed."""
     try:
         data = _read_json(providers_path)
         if not data:
-            print("  Cline: no providers.json found, nothing to block")
+            print("  Cline: no providers.json found, nothing to block — already allowed")
             return True
-
-        providers: dict = data.get("providers", {})
-        removed: list[str] = []
-        for provider in _BLOCKED_PROVIDERS:
-            if provider in providers:
-                del providers[provider]
-                removed.append(provider)
-
-        if removed:
-            data["providers"] = providers
-            print(f"  Cline: blocked {', '.join(removed)}")
-            return _write_json(providers_path, data)
-        else:
-            print("  Cline: openai + anthropic already blocked (or never configured)")
-            return True
+        print("  Cline: openai + anthropic allowed (no removal)")
+        return True
     except Exception as e:
-        print(f"Error updating Cline providers.json: {e}", file=sys.stderr)
+        print(f"Error checking Cline providers.json: {e}", file=sys.stderr)
         return False
+
+
+def _block_omp_providers(models_path: Path) -> bool:
+    return _allow_omp_providers(models_path)
+
+
+def _block_cline_providers(providers_path: Path) -> bool:
+    return _allow_cline_providers(providers_path)
 
 
 def install(
     omp_models_path: Path | None = None,
     cline_providers_path: Path | None = None,
+    pi_models_path: Path | None = None,
 ) -> int:
-    """Block OpenAI and Anthropic providers on OMP and Cline."""
+    """Allow OpenAI and Anthropic providers on OMP, Cline, and Pi."""
     omp_models = omp_models_path or OMP_MODELS_PATH
     cline_providers = cline_providers_path or CLINE_PROVIDERS_PATH
+    pi_models = pi_models_path or PI_MODELS_PATH
 
-    print("\nBlocking OpenAI and Anthropic providers...")
+    print("\nAllowing OpenAI and Anthropic providers...")
     errors: list[str] = []
 
-    if not _block_omp_providers(omp_models):
-        errors.append("Failed to block OMP providers")
+    if not _allow_omp_providers(omp_models):
+        errors.append("Failed to allow OMP providers")
 
-    if not _block_cline_providers(cline_providers):
-        errors.append("Failed to block Cline providers")
+    if not _allow_cline_providers(cline_providers):
+        errors.append("Failed to allow Cline providers")
+
+    if not _allow_pi_providers(pi_models):
+        errors.append("Failed to allow Pi providers")
 
     if errors:
         for err in errors:
             print(err, file=sys.stderr)
         return 1
 
-    print("\nDone. OpenAI and Anthropic are now blocked on OMP and Cline.")
+    print("\nDone. OpenAI and Anthropic are now allowed on OMP, Cline, and Pi.")
     return 0
 
 

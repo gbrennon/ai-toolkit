@@ -45,30 +45,36 @@ Non-conforming files produce no warning and no error; the run reports a smaller
 rule count and succeeds.
 
 ```text
-06-git-guidance.md    conforming   — order 6, name "git-guidance"
+07-git-guidance.md    conforming   — order 7, name "git-guidance"
 rules.md              skipped      — no two-digit prefix
 7-git.md              skipped      — single-digit prefix
 ```
 
 ## The current rule set
 
-| File | H1 title | Owns |
-|------|----------|------|
-| `00-global-noise-exclusions.md` | `# General Purpose Noise Exclusions` | Paths and file patterns agents must never read |
-| `01-general-project-policies.md` | `# General Project Policies` | Context budgeting, reading strategy, secrets, testing philosophy |
-| `02-architecture-guidance.md` | `# Architecture Guidance` | Layering, ports and adapters, SOLID, structural red flags |
-| `03-agent-communication-and-workflow.md` | `# Communication & Workflow` | Language, tone, code-reading order, verification workflow |
-| `04-code-writing-style.md` | `# Code Writing Style` | Naming, comments, docstring contract |
-| `05-test-writing-style.md` | `# Test Writing Style` | What to test, fakes versus mocks, test-first rules |
-| `06-git-guidance.md` | `# Git Guidance` | Git usage limits and hook policy |
+- `00-global-noise-exclusions.md` — `# General Purpose Noise Exclusions` — paths
+  and file patterns agents must never read
+- `01-general-project-policies.md` — `# General Project Policies` — context
+  budgeting, reading strategy, secrets, testing philosophy
+- `02-architecture-guidance.md` — `# Architecture Guidance` — layering, ports
+  and adapters, SOLID, structural red flags
+- `03-agent-communication-and-workflow.md` — `# Communication & Workflow` —
+  language, tone, code-reading order, verification workflow
+- `04-code-writing-style.md` — `# Code Writing Style` — naming, comments,
+  docstring contract
+- `05-test-writing-style.md` — `# Test Writing Style` — what to test, fakes
+  versus mocks, test-first rules
+- `06-markdown-writing-style.md` — `# Markdown Writing Style` — markdown
+  structure, style, and composition limits
+- `07-git-guidance.md` — `# Git Guidance` — git usage limits and hook policy
 
 Put new guidance in the file that already owns the topic. Create a new file only
 for a genuinely new topic.
 
 ## Adding a new rule file
 
-1. Pick the next unused prefix. `00`–`06` are taken, so a new topic takes `07`.
-2. Name the file `07-<kebab-case-topic>.md`.
+1. Pick the next unused prefix. `00`–`07` are taken, so a new topic takes `08`.
+2. Name the file `08-<kebab-case-topic>.md`.
 3. Give it a single `#` H1 title naming the topic, then `##` (and `###`)
    subsections.
 4. Write imperative bullets — one testable directive each.
@@ -162,7 +168,7 @@ preserving order. Parent directories are created as needed.
 | `--source` | `agent_rules` | Directory to read `[0-9][0-9]-*.md` rules from |
 | `--targets-file` | `~/.config/ai-toolkit/agent_targets.txt` | Manifest of destination paths |
 | `--target` | none | Extra single destination, appended to the manifest targets |
-| `--persist` | off | Copy rules to `~/.config/ai-toolkit/rules.d`, then compose from that directory |
+| `--persist` | off | Copy to `~/.config/ai-toolkit/rules.d`, then compose from there |
 
 `--persist` writes each matching rule file into
 `~/.config/ai-toolkit/rules.d` and then uses that global directory as the
@@ -190,7 +196,7 @@ uv run install-agent-rules \
   --target /tmp/agents-preview/AGENTS.md
 ```
 
-Expect `Composed 7 rules into /tmp/agents-preview/AGENTS.md` and exit status `0`.
+Expect `Composed 8 rules into /tmp/agents-preview/AGENTS.md` and exit status `0`.
 The count must equal the number of conforming files in `agent_rules/` — a lower
 count means one of your files violates the naming contract.
 
@@ -202,7 +208,7 @@ grep -n '^# ' /tmp/agents-preview/AGENTS.md
 ```
 
 Line 1 must be `# Agent Rules — Composed by ai-toolkit` and line 2
-`# Source: agent_rules`, followed by the H1 titles in `00`→`06` order.
+`# Source: agent_rules`, followed by the H1 titles in `00`→`07` order.
 
 Once the preview is correct:
 

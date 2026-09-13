@@ -6,70 +6,68 @@ MCP_JSON    := mcp/mcp.json
 DOTENV      := .env
 TARGET_PATH := $(HOME)/.cline/data/settings/cline_mcp_settings.json
 
-# ── Auto-generated help ─────────────────────────────────────────────────────
-help:  ## Show this help
-	@awk -F ':.*?## ' '/^[a-zA-Z0-9_-]+:.*?## / {printf "  \033[36m%-28s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST) | sort
+help:
+	@grep -E '^[a-zA-Z0-9_-]+:' $(MAKEFILE_LIST) | cut -d: -f1 | sort | awk '{printf "  \033[36m%-28s\033[0m\n", $$1}'
 	@echo ""
 	@echo "  make install   runs all install targets"
+	@echo "  make help      show this help"
 
-# ── Setup ────────────────────────────────────────────────────────────────────
-setup:  ## Install dependencies (uv sync)
+setup:
 	$(UV) sync
 
-# ── Install ──────────────────────────────────────────────────────────────────
-install-mcp:  ## Install & deploy MCP servers
+install-mcp:
 	$(UV) run install-mcp-servers
 
-install-skills:  ## Install skills
+install-skills:
 	$(UV) run install-skills
 
-install-agent-rules:  ## Compose agent_rules/ into manifest-listed AGENTS.md targets
+install-agent-rules:
 	$(UV) run install-agent-rules
 
-install-omp-commands:  ## Install OMP Cline auth commands & scripts
+install-omp-commands:
 	$(UV) run install-omp-commands
 
-install-provider-blocks:  ## Block OpenAI & Anthropic access on OMP + Cline
+install-provider-blocks:
 	$(UV) run install-provider-blocks
 
-install-quality-cli:  ## Install check-code-quality CLI to ~/.local/bin and rules to ~/.config/ai-toolkit/semgrep
+install-quality-cli:
 	mkdir -p $(HOME)/.local/bin $(HOME)/.config/ai-toolkit/semgrep
 	install -m 755 scripts/check-code-quality.sh $(HOME)/.local/bin/check-code-quality
 	cp -r rules/semgrep/* $(HOME)/.config/ai-toolkit/semgrep/
 
-install: install-skills install-agent-rules install-omp-commands install-provider-blocks install-quality-cli  ## Run all install targets
+HOOK_AGENT ?= all
 
-# ── Pi Config ────────────────────────────────────────────────────────────────
-install-pi-config:  ## Sync CLINE_API_KEY from .env into Pi + OpenCode
+install-hooks:
+	$(UV) run install-hooks --agent $(HOOK_AGENT)
+
+install: install-mcp install-skills install-agent-rules install-omp-commands install-provider-blocks install-pi-config install-quality-cli install-hooks
+
+install-pi-config:
 	$(UV) run install-pi-config
 
-# ── Deploy ───────────────────────────────────────────────────────────────────
-deploy-mcp:  ## Alias for install-mcp
+deploy-mcp:
 	$(UV) run install-mcp-servers
 
-# ── Systemd ──────────────────────────────────────────────────────────────────
-install-systemd:  ## Install systemd user services & timers
+install-systemd:
 	bash scripts/install-systemd.sh
 
-uninstall-systemd:  ## Remove systemd user services & timers
+uninstall-systemd:
 	-systemctl --user disable --now gb-mcp-servers.timer 2>/dev/null
 	-systemctl --user disable --now gb-skills.timer 2>/dev/null
 	-rm -f $(HOME)/.config/systemd/user/gb-mcp-servers.*
 	-rm -f $(HOME)/.config/systemd/user/gb-skills.*
 	systemctl --user daemon-reload
 
-install-aliases:  ## Install shell aliases for CLI commands
+install-aliases:
 	bash scripts/install-aliases.sh
 
-# ── Test ─────────────────────────────────────────────────────────────────────
-test:  ## Run all tests
+test:
 	$(UV) run pytest tests/ --tb=short
 
-test-unit:  ## Run unit tests only
+test-unit:
 	$(UV) run pytest tests/ -m unit --tb=short
 
-# ── Clean ────────────────────────────────────────────────────────────────────
-clean:  ## Remove build artifacts and caches
+clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name '*.pyc' -delete 2>/dev/null || true
 	find . -type d -name '.pytest_cache' -exec rm -rf {} + 2>/dev/null || true

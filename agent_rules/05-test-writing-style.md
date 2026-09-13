@@ -1,21 +1,69 @@
 # Test Writing Style
 
-Rules for writing tests that are not biased, well-structured and well-written.
+Rules for writing tests that are unbiased, well-structured, and readable.
+Use expressive names for test classes, tests, parameters, and methods so tests are self-documenting.
 No comments, expressive names only.
-You should use expressive names for classes,tests, params and methods like high-quality code that is self-documenting thorugh expressive names.
 
-## What to test
+## What to Test
 
-You should test behavior only.
-Don't test implementation.
-Test should assert what tested code returns in a given scenario and not if it calls some method.
+- Test behavior only, never implementation.
+- Assert what the tested code returns in a given scenario, never that a method was called.
+- Exercise the code in all possible scenarios.
+- Keep tests simple and free of logic.
+- Keep the test-quality bar high.
 
-### Testing rules
+## Test-First Workflow
 
-If you are going to modificate behavior you should write test first.
-Tests shouldn't have logic. They should be simple.
-Test should excercise code in all possible scenarios.
-When writing unit tests you can mock injectable dependencies but in code that have external dependencies you should write integration tests that use fake classes to represent interaction.
-Don't mock what you don't own, you should write integration test and inject fake classes that cover a single scenario per class.
-If you have to simulate a scenarioo in which HTTP response contains 400 status code you should have a stub class to have a fake/stub class for that scenario that cover this.
-Keep test rule high
+- Write the failing test before modifying the implementation when behavior changes.
+
+## Test Organization by Language
+
+- Rust: place all tests for a source file inside a single `#[cfg(test)] mod tests` block.
+- Python: group tests inside a test class, one class per behavior.
+- Other languages: follow the language's standard test-grouping convention.
+- Keep each test file small; split it into composed files the moment it grows.
+
+## AAA Structure
+
+Every test is split into three sections a reader can identify at a glance:
+
+1. **Assign** — set up inputs, dependencies, and expected values.
+2. **Act** — run the behavior under test with a single action.
+3. **Assert** — verify the observed outcome.
+
+Separate each section with exactly one blank line.
+
+```rust
+#[test]
+fn total_applies_percentage_discount() {
+    let cart = cart_with_two_items();
+
+    let total = cart.total_after(discount_of(10));
+
+    assert_eq!(total, 90);
+}
+```
+
+Each section stays in its own block: never merge the action into the assertion
+and never hide the assignment inside the action line.
+
+## Test Doubles
+
+- In unit tests, mock only injectable dependencies.
+- For external dependencies, never mock what you do not own: write integration
+  tests that inject fake classes.
+- Give each fake or stub class exactly one scenario, e.g. one stub class that
+  returns an HTTP 400 response.
+
+## Test Coverage
+
+- Never decrease the current test coverage percentage.
+- Pure implementations must reach 100% test coverage.
+- Implementations with external dependencies must reach at least 80% test coverage.
+
+## Composition Limits
+
+- Apply the same size limits as code: maximum line length of 100 characters,
+  maximum class length of 120 lines, and maximum file length of 300 lines.
+- Split an oversized test into composed scenarios, one assertion path per test.
+- Split an oversized test file by behavior.

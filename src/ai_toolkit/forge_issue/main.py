@@ -14,7 +14,6 @@ from ai_toolkit.forge.api import (
 )
 
 
-# ── list ─────────────────────────────────────────────────────────────────────
 
 
 def gh_list(owner: str, repo: str, state: str, label: str | None) -> list[dict]:
@@ -73,7 +72,6 @@ def cmd_list(args: argparse.Namespace) -> None:
         print("_No issues found._")
 
 
-# ── view ─────────────────────────────────────────────────────────────────────
 
 
 def gh_view(owner: str, repo: str, number: str) -> tuple[dict, list[dict]]:
@@ -159,7 +157,6 @@ def cmd_view(args: argparse.Namespace) -> None:
     print(f"---\n_Issue #{issue['number']} with {len(comments)} comment(s)_")
 
 
-# ── create ───────────────────────────────────────────────────────────────────
 
 
 def gh_create(owner: str, repo: str, title: str, body: str, labels: list[str]) -> dict:
@@ -211,7 +208,6 @@ def cmd_create(args: argparse.Namespace) -> None:
         print(url)
 
 
-# ── comment ──────────────────────────────────────────────────────────────────
 
 
 def gh_comment(owner: str, repo: str, number: str, body: str) -> dict:
@@ -257,7 +253,6 @@ def cmd_comment(args: argparse.Namespace) -> None:
         print(url)
 
 
-# ── label ────────────────────────────────────────────────────────────────────
 
 
 def gh_label_add(owner: str, repo: str, number: str, label: str) -> None:
@@ -343,7 +338,6 @@ def cmd_label(args: argparse.Namespace) -> None:
     print(f"Label '{label}' {'added to' if add else 'removed from'} #{number}")
 
 
-# ── entry ────────────────────────────────────────────────────────────────────
 
 
 def main() -> None:

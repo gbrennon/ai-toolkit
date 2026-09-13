@@ -123,7 +123,22 @@ def _register_opencode_provider(config_path: Path, base_url: str) -> bool:
             },
         },
     }
-    return _merge_json(config_path, "provider", "Cline", entry)
+    nvidia_entry = {
+        "npm": "@ai-sdk/openai-compatible",
+        "name": "NVIDIA NIM",
+        "options": {
+            "baseURL": "https://integrate.api.nvidia.com/v1",
+            "apiKey": "{env:NVIDIA_API_KEY}",
+        },
+        "models": {
+            "nemotron-3-nano-30b-a3b": {"name": "Nemotron Nano 30B"},
+            "nemotron-3-ultra-550b-a55b": {"name": "Nemotron Ultra 550B"},
+            "google/gemma-4-31b-it": {"name": "Gemma 4 31B IT"},
+        },
+    }
+    ok = _merge_json(config_path, "provider", "Cline", entry)
+    ok = _merge_json(config_path, "provider", "nvidia", nvidia_entry) and ok
+    return ok
 
 
 def main(
@@ -143,11 +158,13 @@ def main(
         dotenv_vars = load_dotenv(dotenv)
 
     api_key = dotenv_vars.get("CLINE_API_KEY")
-    if not api_key:
-        print("CLINE_API_KEY not found in .env file")
-        return 1
-
     base_url = dotenv_vars.get("CLINE_API_BASE_URL", "")
+
+    if not api_key:
+        print("CLINE_API_KEY not found in .env file — registering provider without auth (set CLINE_API_KEY to enable)")
+        _register_pi_provider(pi_models, base_url)
+        _register_opencode_provider(opencode_config, base_url)
+        return 0
 
     errors: list[str] = []
 

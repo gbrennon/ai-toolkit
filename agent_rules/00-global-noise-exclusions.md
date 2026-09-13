@@ -1,6 +1,8 @@
 # General Purpose Noise Exclusions
 
-Exclude build artifacts, cache directories, dependency caches, generated files, and OS-level noise that clutter context and waste tokens. These patterns are language-agnostic; language-specific excludes live in per-project rules.
+Exclude build artifacts, cache directories, dependency caches, generated files,
+and OS-level noise that clutter context and waste tokens. These patterns are
+language-agnostic; language-specific excludes live in per-project rules.
 
 ## Patterns to Always Ignore
 

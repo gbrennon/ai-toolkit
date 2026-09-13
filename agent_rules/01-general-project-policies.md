@@ -11,7 +11,8 @@ Project-agnostic guidelines for context management and file handling.
 - `ARCHITECTURE.md` — design documentation
 - `.github/workflows/*.yml` — CI/CD pipeline definitions (not logs)
 - `Makefile`, `justfile`, `Taskfile` — build tasks
-- `pyproject.toml`, `Cargo.toml`, `go.mod`, `package.json`, `Gemfile`, `pom.xml` — dependency manifests
+- `pyproject.toml`, `Cargo.toml`, `go.mod`, `package.json`, `Gemfile`,
+  `pom.xml` — dependency manifests
 - `.env.example` — configuration reference (not secrets)
 - `docker-compose.yml`, `Dockerfile` — deployment configuration
 
@@ -59,7 +60,8 @@ Rules use `.gitignore`-style patterns:
 
 ### Expected Structure (Test Pyramid)
 - **Unit tests (Domain & Application):** Fast, no I/O, explicit fakes
-- **Integration tests (Infrastructure & Presentation):** Against real infrastructure, validate contracts
+- **Integration tests (Infrastructure & Presentation):** Against real
+  infrastructure, validate contracts
 - **End-to-end (Presentation):** Validate full user flow
 
 **Should verify:**
@@ -99,7 +101,8 @@ Rules load in order:
 
 ## Performance Tips
 
-- **Context budget exceeded?** → Narrow the request scope (ask about one layer, not the whole project)
+- **Context budget exceeded?** → Narrow the request scope (ask about one layer,
+  not the whole project)
 - **Slow response?** → Check if large files (>1MB) are being read; whitelist them in overrides
 - **Noisy results?** → Add more patterns to project-specific exclusions
 - **Want to debug rules?** → "list all excluded patterns and explain why"

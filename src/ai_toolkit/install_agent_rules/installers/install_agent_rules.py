@@ -13,9 +13,6 @@ _GLOBAL_RULES_DIR = Path.home() / ".config" / "ai-toolkit" / "rules.d"
 AGENT_TARGETS_FILE = Path.home() / ".config" / "ai-toolkit" / "agent_targets.txt"
 
 _DEFAULT_TARGETS_TEMPLATE = """\
-# Agent rule destination paths for install-agent-rules.
-# Edit this file to match the agentic tools you have installed.
-# Non-comment lines are destinations, one per line; `~` is expanded.
 ~/.agents/AGENTS.md
 ~/.config/opencode/AGENTS.md
 ~/.omp/agent/AGENTS.md
