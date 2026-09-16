@@ -49,6 +49,14 @@ Use the project's standard documentation format (JSDoc,
 Google/reStructuredText/NumPy in Python, `///` doc comments in Rust, JavaDoc,
 or plain) — follow what the codebase already uses.
 
+## Factory Methods
+
+- Use a class-level factory only when it returns an instance of the class that defines it.
+- Use an instance method when a dedicated factory class creates another class.
+- Never use a static method as a factory.
+- In Python, annotate a same-class class-level factory return with `Self`, never a quoted class name.
+- Apply the equivalent same-class return-type rule in Rust, Scala, and other languages.
+
 ## Quantitative Size and Complexity Limits
 
 - **Maximum cyclomatic complexity: 5**. Functions or methods exceeding complexity
@@ -102,13 +110,6 @@ or plain) — follow what the codebase already uses.
 - **Architectural boundaries**: Domain logic must never import or depend on
   infrastructure or presentation layers. Outer layers depend on inner
   abstractions; domain remains pure.
-
-## Automated Quality Tooling Verification
-
-- Agents must run code quality checks before claiming implementation complete:
-  - Run `check-code-quality` (or `lizard -C 5` and `semgrep scan --config
-    .semgrep .`) whenever available.
-  - Zero violations are permitted in changed or newly created code.
 
 ## Strong Typing & Enforced Type Hints
 

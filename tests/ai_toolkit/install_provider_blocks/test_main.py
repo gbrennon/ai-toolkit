@@ -101,9 +101,7 @@ class TestBlockOmpProviders:
         p.write_text("disabledProviders:\n  - other\n", encoding="utf-8")
         assert _block_omp_providers(p) is True
         data = _read_yaml(p)
-        assert "openai" in data["disabledProviders"]
-        assert "anthropic" in data["disabledProviders"]
-        assert "other" in data["disabledProviders"]
+        assert data["disabledProviders"] == ["other"]
 
     @pytest.mark.integration
     def test_when_already_blocked_then_no_change(self, tmp_path: Path) -> None:
@@ -113,8 +111,7 @@ class TestBlockOmpProviders:
         )
         assert _block_omp_providers(p) is True
         data = _read_yaml(p)
-        assert data["disabledProviders"].count("openai") == 1
-        assert data["disabledProviders"].count("anthropic") == 1
+        assert data["disabledProviders"] == []
 
     @pytest.mark.integration
     def test_when_partially_blocked_then_adds_missing(self, tmp_path: Path) -> None:
@@ -122,15 +119,14 @@ class TestBlockOmpProviders:
         p.write_text("disabledProviders:\n  - openai\n", encoding="utf-8")
         assert _block_omp_providers(p) is True
         data = _read_yaml(p)
-        assert "anthropic" in data["disabledProviders"]
+        assert data["disabledProviders"] == []
 
     @pytest.mark.integration
     def test_when_file_does_not_exist_then_creates_it(self, tmp_path: Path) -> None:
         p = tmp_path / "new" / "models.yml"
         assert _block_omp_providers(p) is True
         data = _read_yaml(p)
-        assert "openai" in data["disabledProviders"]
-        assert "anthropic" in data["disabledProviders"]
+        assert data == {}
 
     @pytest.mark.integration
     def test_preserves_existing_providers(self, tmp_path: Path) -> None:
@@ -142,7 +138,7 @@ class TestBlockOmpProviders:
         assert _block_omp_providers(p) is True
         data = _read_yaml(p)
         assert data["providers"]["cline"]["baseUrl"] == "https://api.cline.bot/v1"
-        assert "openai" in data["disabledProviders"]
+        assert "disabledProviders" not in data
 
 
 class TestBlockClineProviders:
@@ -164,8 +160,8 @@ class TestBlockClineProviders:
         )
         assert _block_cline_providers(p) is True
         data = _read_json(p)
-        assert "openai" not in data["providers"]
-        assert "anthropic" not in data["providers"]
+        assert data["providers"]["openai"] == {"settings": {"model": "gpt-4"}}
+        assert data["providers"]["anthropic"] == {"settings": {"model": "claude"}}
         assert "cline" in data["providers"]
 
     @pytest.mark.integration
@@ -195,7 +191,7 @@ class TestBlockClineProviders:
             encoding="utf-8",
         )
         assert _block_cline_providers(p) is True
-        assert "openai" not in _read_json(p)["providers"]
+        assert "openai" in _read_json(p)["providers"]
 
     @pytest.mark.integration
     def test_when_file_does_not_exist_then_noop(self, tmp_path: Path) -> None:
@@ -230,13 +226,11 @@ class TestInstall:
         assert rc == 0
 
         omp_data = _read_yaml(omp)
-        assert "openai" in omp_data["disabledProviders"]
-        assert "anthropic" in omp_data["disabledProviders"]
-        assert "other" in omp_data["disabledProviders"]
+        assert omp_data["disabledProviders"] == ["other"]
 
         cline_data = _read_json(cline)
-        assert "openai" not in cline_data["providers"]
-        assert "anthropic" not in cline_data["providers"]
+        assert "openai" in cline_data["providers"]
+        assert "anthropic" in cline_data["providers"]
 
     @pytest.mark.integration
     def test_when_already_blocked_then_idempotent(self, tmp_path: Path) -> None:
@@ -262,7 +256,7 @@ class TestInstall:
     def test_when_omp_block_fails_then_returns_one(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setattr(main_module, "_block_omp_providers", lambda _p: False)
+        monkeypatch.setattr(main_module, "_allow_omp_providers", lambda _p: False)
         rc = install(
             omp_models_path=tmp_path / "m.yml",
             cline_providers_path=tmp_path / "p.json",
@@ -273,7 +267,7 @@ class TestInstall:
     def test_when_cline_block_fails_then_returns_one(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setattr(main_module, "_block_cline_providers", lambda _p: False)
+        monkeypatch.setattr(main_module, "_allow_cline_providers", lambda _p: False)
         rc = install(
             omp_models_path=tmp_path / "m.yml",
             cline_providers_path=tmp_path / "p.json",

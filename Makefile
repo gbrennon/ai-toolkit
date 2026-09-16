@@ -33,6 +33,7 @@ install-provider-blocks:
 install-quality-cli:
 	mkdir -p $(HOME)/.local/bin $(HOME)/.config/ai-toolkit/semgrep
 	install -m 755 scripts/check-code-quality.sh $(HOME)/.local/bin/check-code-quality
+	install -m 755 scripts/check-modified-code-quality.sh $(HOME)/.local/bin/check-modified-code-quality
 	cp -r rules/semgrep/* $(HOME)/.config/ai-toolkit/semgrep/
 
 HOOK_AGENT ?= all

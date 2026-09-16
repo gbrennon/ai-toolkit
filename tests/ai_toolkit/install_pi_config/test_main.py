@@ -187,18 +187,18 @@ class TestRegisterOpencodeProvider:
 
 class TestMain:
     @pytest.mark.integration
-    def test_when_dotenv_missing_then_returns_one(self, tmp_path: Path) -> None:
+    def test_when_dotenv_missing_then_registers_without_auth(self, tmp_path: Path) -> None:
         rc = main(dotenv_path=tmp_path / ".env")
-        assert rc == 1
+        assert rc == 0
 
     @pytest.mark.integration
-    def test_when_dotenv_has_no_cline_key_then_returns_one(
+    def test_when_dotenv_has_no_cline_key_then_registers_without_auth(
         self, tmp_path: Path
     ) -> None:
         dotenv = tmp_path / ".env"
         dotenv.write_text("OTHER_KEY=val\n", encoding="utf-8")
         rc = main(dotenv_path=dotenv)
-        assert rc == 1
+        assert rc == 0
 
     @pytest.mark.integration
     def test_when_key_present_then_syncs_auth_and_providers_and_returns_zero(
