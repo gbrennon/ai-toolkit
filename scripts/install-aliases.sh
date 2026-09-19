@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# install-aliases.sh — Install shell aliases for AI Toolkit commands
-set -euo pipefail
+# install-aliases.sh - Install shell aliases for AI Toolkit commands
 
-ALIAS_FILE="${HOME}/.ai-toolkit-aliases"
+main() {
+  set -euo pipefail
 
-cat > "$ALIAS_FILE" << 'EOF'
-# AI Toolkit — shell aliases
+  local alias_file="${HOME}/.ai-toolkit-aliases"
+
+  cat > "$alias_file" << 'EOF'
+# AI Toolkit - shell aliases
 # Source this file in your .bashrc / .zshrc:
 #   [ -f ~/.ai-toolkit-aliases ] && source ~/.ai-toolkit-aliases
 
@@ -22,7 +24,10 @@ alias ai-skills-run='systemctl --user start ai-skills.service'
 alias ai-timers='systemctl --user list-timers "ai-*"'
 EOF
 
-echo "Aliases written to $ALIAS_FILE"
-echo ""
-echo "To activate, add this line to your shell rc file:"
-echo "  [ -f ~/.ai-toolkit-aliases ] && source ~/.ai-toolkit-aliases"
+  echo "Aliases written to $alias_file"
+  echo ""
+  echo "To activate, add this line to your shell rc file:"
+  echo "  [ -f ~/.ai-toolkit-aliases ] && source ~/.ai-toolkit-aliases"
+}
+
+main "$@"

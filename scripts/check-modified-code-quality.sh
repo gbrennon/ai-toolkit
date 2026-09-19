@@ -1,22 +1,32 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
-EVENT=$(cat)
-PATH_TO_CHECK=$(printf '%s' "$EVENT" | python3 -c \
-  'import json,sys; d=json.load(sys.stdin); p=d.get("tool_input",{}).get("path",""); print(p if isinstance(p,str) else "")' \
-  2>/dev/null || true)
+main() {
+  set -euo pipefail
 
-if [[ -z "$PATH_TO_CHECK" ]]; then
-  exit 0
-fi
+  local event
+  local path_to_check
+  local output
+  local status
 
-set +e
-OUTPUT=$(check-code-quality "$PATH_TO_CHECK" 2>&1)
-STATUS=$?
-set -e
+  event="$(cat)"
+  path_to_check="$(printf '%s' "$event" | python3 -c \
+    'import json,sys; d=json.load(sys.stdin); p=d.get("tool_input",{}).get("path",""); print(p if isinstance(p,str) else "")' \
+    2>/dev/null || true)"
 
-if [[ $STATUS -ne 0 ]]; then
-  printf '%s\n' "$OUTPUT"
-fi
+  if [[ -z "$path_to_check" ]]; then
+    exit 0
+  fi
 
-exit "$STATUS"
+  set +e
+  output="$(check-code-quality "$path_to_check" 2>&1)"
+  status=$?
+  set -e
+
+  if [[ $status -ne 0 ]]; then
+    printf '%s\n' "$output"
+  fi
+
+  exit "$status"
+}
+
+main "$@"

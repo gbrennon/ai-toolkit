@@ -36,17 +36,17 @@ def run_wrapper(
 
 
 def test_passed_check_receives_only_modified_path(tmp_path: Path) -> None:
-    event = {"tool_input": {"path": "src/app.py"}}
+    event = {"tool_input": {"path": "tests/app.py"}}
 
     result = run_wrapper(event, tmp_path, fake_checker_output="passed")
 
     assert result.returncode == 0
     assert result.stdout == ""
-    assert (tmp_path / "args.txt").read_text(encoding="utf-8") == "src/app.py\n"
+    assert (tmp_path / "args.txt").read_text(encoding="utf-8") == "tests/app.py\n"
 
 
 def test_failed_check_returns_checker_output(tmp_path: Path) -> None:
-    event = {"tool_input": {"path": "src/app.py"}}
+    event = {"tool_input": {"path": "tests/app.py"}}
 
     result = run_wrapper(
         event,

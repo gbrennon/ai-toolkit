@@ -88,6 +88,7 @@ When reviewing a project, validate:
 - Domain imports infrastructure (tight coupling)
 - Application imports presentation (reversed dependency)
 - No clear port/adapter boundaries
+- Ports containing concrete logic or state (ports must be pure contracts)
 - Direct database queries in domain logic
 
 ## Language-Specific Rules

@@ -1,66 +1,54 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-# Get the script's directory and use it to find the repo root
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(dirname "$SCRIPT_DIR")"
-
-# Configuration (relative paths from repo root)
-AGENT_RULES_DIR="${REPO_ROOT}/agent_rules"
-CLINE_RULES_DIR="${HOME}/.cline/rules"
-FILES=(
-  "00-global-noise-exclusions.md"
-  "01-python-language-specific.md"
-  "02-general-project-policies.md"
-)
-
-# Functions
 log_info() {
-  echo -e "${GREEN}[INFO]${NC} $1"
+  echo "[INFO] $1"
 }
 
 log_warn() {
-  echo -e "${YELLOW}[WARN]${NC} $1"
+  echo "[WARN] $1"
 }
 
 log_error() {
-  echo -e "${RED}[ERROR]${NC} $1"
+  echo "[ERROR] $1" >&2
 }
 
 check_agent_rules_exists() {
-  if [[ ! -d "$AGENT_RULES_DIR" ]]; then
-    log_error "Agent rules directory not found: $AGENT_RULES_DIR"
-    exit 1
+  local agent_rules_dir="$1"
+
+  if [[ ! -d "$agent_rules_dir" ]]; then
+    log_error "Agent rules directory not found: $agent_rules_dir"
+    return 1
   fi
-  log_info "Found agent_rules directory: $AGENT_RULES_DIR"
+  log_info "Found agent_rules directory: $agent_rules_dir"
 }
 
 create_cline_dir() {
-  if [[ ! -d "$CLINE_RULES_DIR" ]]; then
-    log_info "Creating Cline rules directory: $CLINE_RULES_DIR"
-    mkdir -p "$CLINE_RULES_DIR"
+  local cline_rules_dir="$1"
+
+  if [[ ! -d "$cline_rules_dir" ]]; then
+    log_info "Creating Cline rules directory: $cline_rules_dir"
+    mkdir -p "$cline_rules_dir"
   else
-    log_info "Cline rules directory exists: $CLINE_RULES_DIR"
+    log_info "Cline rules directory exists: $cline_rules_dir"
   fi
 }
 
 move_files() {
+  local agent_rules_dir="$1"
+  local cline_rules_dir="$2"
+  shift 2
+  local file
+  local src
+  local dest
   local failed=0
 
-  for file in "${FILES[@]}"; do
-    local src="${AGENT_RULES_DIR}/${file}"
-    local dest="${CLINE_RULES_DIR}/${file}"
+  for file in "$@"; do
+    src="${agent_rules_dir}/${file}"
+    dest="${cline_rules_dir}/${file}"
 
     if [[ ! -f "$src" ]]; then
       log_warn "File not found: $src"
-      ((failed++))
+      failed=$((failed + 1))
       continue
     fi
 
@@ -70,22 +58,26 @@ move_files() {
     fi
 
     mv "$src" "$dest"
-    log_info "Moved: $src → $dest"
+    log_info "Moved: $src to $dest"
   done
 
-  return $failed
+  return "$failed"
 }
 
 verify_installation() {
-  log_info "Verifying installation..."
+  local cline_rules_dir="$1"
+  shift
+  local file
+  local dest
   local all_exist=true
 
-  for file in "${FILES[@]}"; do
-    local dest="${CLINE_RULES_DIR}/${file}"
+  log_info "Verifying installation..."
+  for file in "$@"; do
+    dest="${cline_rules_dir}/${file}"
     if [[ -f "$dest" ]]; then
-      echo "  ✓ $file"
+      echo "  OK $file"
     else
-      echo "  ✗ $file (MISSING)"
+      echo "  MISSING $file"
       all_exist=false
     fi
   done
@@ -100,35 +92,61 @@ verify_installation() {
 }
 
 show_summary() {
+  local agent_rules_dir="$1"
+  local cline_rules_dir="$2"
+  shift 2
+  local file
+  local index=1
+
   echo ""
-  echo "──────────────────────────────────────"
+  echo "--------------------------------------"
   echo "Cline Rules Installation Summary"
-  echo "──────────────────────────────────────"
-  echo "Source: $AGENT_RULES_DIR"
-  echo "Destination: $CLINE_RULES_DIR"
-  echo "Files: ${#FILES[@]}"
+  echo "--------------------------------------"
+  echo "Source: $agent_rules_dir"
+  echo "Destination: $cline_rules_dir"
+  echo "Files: $#"
   echo ""
   echo "Cline will load rules in order:"
-  for i in "${!FILES[@]}"; do
-    echo "  $((i+1)). ${FILES[$i]}"
+  for file in "$@"; do
+    echo "  $index. $file"
+    index=$((index + 1))
   done
   echo ""
   echo "For more info, run:"
-  echo "  cat $CLINE_RULES_DIR/00-global-noise-exclusions.md"
-  echo "──────────────────────────────────────"
+  echo "  cat $cline_rules_dir/00-global-noise-exclusions.md"
+  echo "--------------------------------------"
 }
 
 main() {
+  set -euo pipefail
+
+  local script_dir
+  local repo_root
+  local agent_rules_dir
+  local cline_rules_dir
+  local move_status=0
+  local -a files=(
+    "00-global-noise-exclusions.md"
+    "01-general-project-policies.md"
+    "02-architecture-guidance.md"
+  )
+
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  repo_root="$(dirname "$script_dir")"
+  agent_rules_dir="${repo_root}/agent_rules"
+  cline_rules_dir="${HOME}/.cline/rules"
+
   echo ""
   log_info "Starting Cline rules installation..."
   echo ""
 
-  check_agent_rules_exists
-  create_cline_dir
-  move_files
-  verify_installation
+  check_agent_rules_exists "$agent_rules_dir"
+  create_cline_dir "$cline_rules_dir"
+  move_files "$agent_rules_dir" "$cline_rules_dir" "${files[@]}" || move_status=$?
+  verify_installation "$cline_rules_dir" "${files[@]}"
+  show_summary "$agent_rules_dir" "$cline_rules_dir" "${files[@]}"
 
-  show_summary
+  return "$move_status"
 }
 
 main "$@"

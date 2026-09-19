@@ -32,11 +32,18 @@ when writing, reviewing, or refactoring any code in the project.
 ### Always Define a Contract First
 
 - When the project applies ports and adapters, every external boundary must be
-  defined as a port (interface, protocol, or ABC) in the domain or application
-  layer
+  defined as a port (interface, protocol, trait, or ABC) in the domain or
+  application layer
 - Always write the port before writing any adapter that implements it
 - Never let infrastructure code define the contract — the inner layer owns the
   abstraction
+
+### Ports Are Pure Contracts
+
+- Define every port strictly as a contract (interface, protocol, trait, or pure
+  abstract base class) — never make a port concrete
+- Never place executable behavior, state, or concrete method implementations in
+  a port definition — move all implementation code to an adapter
 
 ### Adapters Stay in Infrastructure
 
@@ -105,5 +112,8 @@ When reviewing or writing code, treat these as violations:
   decompose it
 - A function that mixes domain rules with infrastructure calls — extract the
   infrastructure behind a port
+- A port containing concrete execution logic, default method implementations, or
+  state — refactor the port into a pure contract and move implementation to an
+  adapter
 - Inheritance used to share utility code rather than to model a true subtype
   relationship — refactor to composition
