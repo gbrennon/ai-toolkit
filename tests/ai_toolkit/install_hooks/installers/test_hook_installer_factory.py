@@ -9,6 +9,9 @@ from ai_toolkit.install_hooks.installers.opencode_hooks_installer import (
     OpenCodeHooksInstaller,
 )
 from ai_toolkit.install_hooks.installers.pi_hooks_installer import PiHooksInstaller
+from ai_toolkit.install_hooks.installers.omp_notification_hooks_installer import (
+    OmpNotificationHooksInstaller,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -35,14 +38,16 @@ class TestHookInstallerFactory:
     def test_omp_selects_omp_installer(self):
         installers = HookInstallerFactory.create("omp")
 
-        assert len(installers) == 1
+        assert len(installers) == 2
         assert isinstance(installers[0], OmpHooksInstaller)
+        assert isinstance(installers[1], OmpNotificationHooksInstaller)
 
     def test_all_selects_every_agent_hook_installer(self):
         installers = HookInstallerFactory.create("all")
 
-        assert len(installers) == 4
+        assert len(installers) == 5
         assert isinstance(installers[0], PiHooksInstaller)
         assert isinstance(installers[1], OmpHooksInstaller)
         assert isinstance(installers[2], OpenCodeHooksInstaller)
         assert isinstance(installers[3], ClineHooksInstaller)
+        assert isinstance(installers[4], OmpNotificationHooksInstaller)
