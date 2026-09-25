@@ -7,10 +7,19 @@ from ai_toolkit.install_hooks.installers.pi_hooks_installer import (
     HOOK_CMD,
     HOOK_MATCHER,
     HOOK_PACKAGE,
+    NOTIFICATION_CMD,
     PiHooksInstaller,
 )
 
 pytestmark = pytest.mark.integration
+
+
+def _expected_write_edit_conditions() -> set[str]:
+    return {
+        f"{tool}(*.{ext})"
+        for tool in ("Write", "Edit")
+        for ext in CODE_EXTENSIONS
+    }
 
 
 class TestPiHooksInstaller:
@@ -26,17 +35,29 @@ class TestPiHooksInstaller:
         assert groups[0]["matcher"] == HOOK_MATCHER
         hooks = groups[0]["hooks"]
         conditions = {hook["if"] for hook in hooks}
-        expected_conditions = {
-            f"{tool}(*.{ext})" for tool in ("Write", "Edit")
-            for ext in CODE_EXTENSIONS
-        }
-        assert conditions == expected_conditions
+        assert conditions == _expected_write_edit_conditions()
         assert all(
             hook["type"] == "command"
             and hook["command"] == "check-modified-code-quality"
             for hook in hooks
         )
         assert HOOK_PACKAGE in data["packages"]
+
+    def test_install_writes_stop_notification_hook(self, tmp_path):
+        target = tmp_path / "settings.json"
+
+        PiHooksInstaller.create(target).install()
+
+        data = json.loads(target.read_text(encoding="utf-8"))
+        groups = data["hooks"]["Stop"]
+        assert len(groups) == 1
+        assert "matcher" not in groups[0]
+        hooks = groups[0]["hooks"]
+        assert len(hooks) == 1
+        assert hooks[0]["type"] == "command"
+        assert hooks[0]["command"] == NOTIFICATION_CMD
+        assert "notify-send" in hooks[0]["command"]
+        assert "session_name" in hooks[0]["command"]
 
     def test_install_merges_without_clobbering_existing(self, tmp_path):
         target = tmp_path / "settings.json"
