@@ -45,7 +45,7 @@ def test_passed_check_receives_only_modified_path(tmp_path: Path) -> None:
     assert (tmp_path / "args.txt").read_text(encoding="utf-8") == "tests/app.py\n"
 
 
-def test_failed_check_returns_checker_output(tmp_path: Path) -> None:
+def test_failed_check_reports_violations_as_feedback(tmp_path: Path) -> None:
     event = {"tool_input": {"path": "tests/app.py"}}
 
     result = run_wrapper(
@@ -55,8 +55,9 @@ def test_failed_check_returns_checker_output(tmp_path: Path) -> None:
         checker_status=1,
     )
 
-    assert result.returncode == 1
-    assert result.stdout == "violation\n"
+    assert result.returncode == 2
+    assert "violation" in result.stderr
+    assert result.stdout == ""
 
 
 def test_missing_path_skips_quality_check(tmp_path: Path) -> None:
