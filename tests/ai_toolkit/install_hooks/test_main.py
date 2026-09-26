@@ -9,6 +9,9 @@ from ai_toolkit.install_hooks.installers.opencode_hooks_installer import (
     OpenCodeHooksInstaller,
 )
 from ai_toolkit.install_hooks.installers.pi_hooks_installer import PiHooksInstaller
+from ai_toolkit.install_hooks.installers.omp_notification_hooks_installer import (
+    OmpNotificationHooksInstaller,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -20,6 +23,7 @@ class TestInstall:
             patch.object(OmpHooksInstaller, "install", return_value=True),
             patch.object(OpenCodeHooksInstaller, "install", return_value=True),
             patch.object(ClineHooksInstaller, "install", return_value=True),
+            patch.object(OmpNotificationHooksInstaller, "install", return_value=True),
         ):
             code = install("all")
 
@@ -31,6 +35,7 @@ class TestInstall:
             patch.object(OmpHooksInstaller, "install", return_value=True),
             patch.object(OpenCodeHooksInstaller, "install", return_value=True),
             patch.object(ClineHooksInstaller, "install", return_value=True),
+            patch.object(OmpNotificationHooksInstaller, "install", return_value=True),
         ):
             code = install("all")
 
