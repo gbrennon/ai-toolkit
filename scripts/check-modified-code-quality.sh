@@ -23,10 +23,11 @@ main() {
   set -e
 
   if [[ $status -ne 0 ]]; then
-    printf '%s\n' "$output"
+    printf '%s\n' "$output" >&2
+    exit 2
   fi
 
-  exit "$status"
+  exit 0
 }
 
 main "$@"
