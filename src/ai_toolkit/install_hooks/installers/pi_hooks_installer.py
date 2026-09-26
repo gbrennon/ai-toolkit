@@ -8,6 +8,10 @@ HOOK_PACKAGE: str = "@hsingjui/pi-hooks"
 HOOK_CMD: str = "check-modified-code-quality"
 HOOK_MATCHER: str = "write|edit"
 NOTIFICATION_CMD: str = (
+    "if [ -n \"${TMUX:-}\" ]; then "
+    "tmux_state=$(tmux display-message -p '#{client_session}|#{window_active}'); "
+    "client_session=${tmux_state%%|*}; active=${tmux_state##*|}; "
+    "if [ -n \"$client_session\" ] && [ \"$active\" = '1' ]; then exit 0; fi; fi; "
     "notify-send 'pi agent' \"pi: attention needed in $PWD"
     "${TMUX:+ (tmux $(tmux display-message -p '#{session_name}'))}\""
 )
