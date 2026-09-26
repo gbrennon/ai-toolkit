@@ -24,9 +24,14 @@ class TestOmpNotificationHooksInstaller:
         assert installed is True
         content = target.read_text(encoding="utf-8")
         assert 'pi.on("turn_end"' in content
-        assert "process.env.TMUX" in content
-        assert "#{session_name}" in content
-        assert "display-message" in content
+        assert 'pi.on("tool_call"' in content
+        assert "hasUI" in content
+        assert "hasQueuedMessages" in content
+        assert "isIdle" in content
+        assert "#{client_session}" in content
+        assert "#{window_active}" in content
+        assert "task complete" in content
+        assert "input needed" in content
         assert "notify-send" in content
 
     def test_install_is_deterministic(self, tmp_path: Path) -> None:
