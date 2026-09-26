@@ -171,6 +171,30 @@ Then clean up the merged feature branch. **REQUIRED SUB-SKILL:** use
 
 **Never** do `git checkout main && git merge <branch> && git push`.
 
+**Never remove the worktree this session is running inside.** If the loop is
+running in a worktree (e.g. you handed off into `.worktrees/<name>`), that
+directory is the session's process cwd. Deleting it makes every later
+`spawn bash` fail with `ENOENT` — and a `cd main && git worktree remove` inside
+a single command does **not** save you, because it only moves that one shell,
+not the session's cwd. The next command and the turn's Stop hook still spawn in
+the deleted directory.
+
+So split the teardown:
+
+```bash
+# Branch deletion is always safe from anywhere:
+git branch -d <branch>            # local (if not already gone)
+git push origin --delete <branch> # remote (or rely on --delete-branch at merge)
+```
+
+For the **worktree** itself:
+
+- If you are **not** inside it (session cwd is the main repo), remove it now:
+  `git worktree remove .worktrees/<name> && git worktree prune`.
+- If you **are** inside it, do **not** remove it in this session. Hand the
+  worktree teardown back to a session whose cwd is the main repo (or to the
+  human), then stop. Removing your own cwd is never worth a crashed turn.
+
 ## Common Mistakes
 
 | Mistake | Fix |
@@ -183,6 +207,7 @@ Then clean up the merged feature branch. **REQUIRED SUB-SKILL:** use
 | Merging with unresolved requested changes | Blocking items must be fixed before finishing. |
 | Committing / pushing / merging into the default branch | All work lands on the PR branch; merge the approved PR through the git host only. |
 | Skipping re-review after pushing fixes | The loop isn't done until the reviewer re-runs and approves. |
+| Removing the worktree this session runs inside | Don't. A per-command `cd` won't save you — the session cwd is still the deleted dir. Delete the branch here; hand worktree teardown to a main-repo session or the human. |
 
 ## Red Flags — STOP
 
@@ -191,3 +216,4 @@ Then clean up the merged feature branch. **REQUIRED SUB-SKILL:** use
 - "The reviewer requested changes but I think it's fine, I'll merge" → fix or push back with evidence; never merge over a blocker.
 - "I'll just push this straight to main" / "I'll merge the branch into main locally" → never. Work on the PR branch; merge approved PRs through the git host.
 - "I fixed things locally, PR is basically approved" → not until the auto-review re-runs and approves.
+- "I'll remove this worktree now" while the session runs inside it → don't. Deleting your own cwd crashes the turn (`spawn bash ENOENT`); a per-command `cd` doesn't move the session cwd. Delete the branch; hand worktree teardown to a main-repo session.
