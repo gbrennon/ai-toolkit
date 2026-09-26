@@ -7,6 +7,10 @@ PI_SETTINGS: Path = Path.home() / ".pi" / "agent" / "settings.json"
 HOOK_PACKAGE: str = "@hsingjui/pi-hooks"
 HOOK_CMD: str = "check-modified-code-quality"
 HOOK_MATCHER: str = "write|edit"
+NOTIFICATION_CMD: str = (
+    "notify-send 'pi agent' \"pi: attention needed in $PWD"
+    "${TMUX:+ (tmux $(tmux display-message -p '#{session_name}'))}\""
+)
 
 CODE_EXTENSIONS: tuple[str, ...] = (
     "py", "rs", "go", "ts", "tsx", "js", "jsx",
@@ -16,7 +20,7 @@ CODE_EXTENSIONS: tuple[str, ...] = (
 
 
 class PiHooksInstaller:
-    """Install the Pi PostToolUse quality hook and the pi-hooks package."""
+    """Install the Pi quality, notification hooks and the pi-hooks package."""
 
     def __init__(self, settings_path: Path) -> None:
         self._settings_path = settings_path
@@ -38,6 +42,17 @@ class PiHooksInstaller:
                 }
                 for tool in ("Write", "Edit")
                 for extension in CODE_EXTENSIONS
+            ],
+        }
+
+    def _build_notification_group(self) -> dict[str, Any]:
+        """Build the Stop hook group firing an OS notification when the turn ends."""
+        return {
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": NOTIFICATION_CMD,
+                }
             ],
         }
 
@@ -65,12 +80,14 @@ class PiHooksInstaller:
     def install(self) -> bool:
         try:
             data = self._load_or_init_settings()
-            data.setdefault("hooks", {})["PostToolUse"] = [
-                self._build_hook_group()
-            ]
+            hooks = data.setdefault("hooks", {})
+            hooks["PostToolUse"] = [self._build_hook_group()]
+            hooks["Stop"] = [self._build_notification_group()]
             self._ensure_package_in_list(data)
             self._write_settings(data)
-            print(f"  Pi: PostToolUse hook installed in {self._settings_path}")
+            print(
+                f"  Pi: PostToolUse and Stop hooks installed in {self._settings_path}"
+            )
             return True
         except Exception as e:
             print(f"Pi hook failed: {e}", file=sys.stderr)
