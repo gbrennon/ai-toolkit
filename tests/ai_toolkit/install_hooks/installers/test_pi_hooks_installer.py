@@ -1,4 +1,5 @@
 import json
+import subprocess
 
 import pytest
 
@@ -56,8 +57,19 @@ class TestPiHooksInstaller:
         assert len(hooks) == 1
         assert hooks[0]["type"] == "command"
         assert hooks[0]["command"] == NOTIFICATION_CMD
-        assert "notify-send" in hooks[0]["command"]
-        assert "session_name" in hooks[0]["command"]
+        assert "client_session" in hooks[0]["command"]
+        assert "window_active" in hooks[0]["command"]
+
+    def test_stop_notification_command_has_valid_shell_syntax(self) -> None:
+        result = subprocess.run(
+            ["sh", "-n"],
+            input=NOTIFICATION_CMD,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        assert result.returncode == 0, result.stderr
 
     def test_install_merges_without_clobbering_existing(self, tmp_path):
         target = tmp_path / "settings.json"
