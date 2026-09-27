@@ -15,14 +15,36 @@ function isSourceCodePath(path: string): boolean {
   return CODE_EXTENSIONS.has(extension);
 }
 
+async function runBreaker(action: string, path: string): Promise<{ code: number; stderr: string }> {
+  const cwd = process.cwd();
+  const breakerProcess = Bun.spawn([
+    "ai-toolkit-hook-circuit-breaker", action, "--session", cwd,
+    "--cwd", cwd, "--path", path,
+  ], { cwd, stdout: "pipe", stderr: "pipe" });
+  const code = await breakerProcess.exited;
+  const stderr = await new Response(breakerProcess.stderr).text();
+  return { code, stderr };
+}
+
 const plugin: AgentPlugin = {
   name: "ai-toolkit-quality",
   manifest: { capabilities: ["hooks"] },
   hooks: {
     async afterTool({ toolCall, input, result }) {
-      if (toolCall.toolName !== "write" && toolCall.toolName !== "edit") return;
+      const toolName = toolCall.toolName.toLowerCase();
+      if (toolName !== "write" && toolName !== "edit" && toolName !== "read") return;
       const path = String(input.path ?? input.filePath ?? "");
       if (!path || !isSourceCodePath(path)) return;
+
+      if (toolName === "read") {
+        await runBreaker("reset", path);
+        return;
+      }
+
+      const before = await runBreaker("before", path);
+      if (before.code !== 0) {
+        return { ...result, output: `${result.output}\n${before.stderr}` };
+      }
 
       const qualityProcess = Bun.spawn(["check-code-quality", path], {
         cwd: process.cwd(),
@@ -30,13 +52,17 @@ const plugin: AgentPlugin = {
         stderr: "pipe",
       });
       const status = await qualityProcess.exited;
-      if (status === 0) return;
+      if (status === 0) {
+        await runBreaker("success", path);
+        return;
+      }
 
       const stderr = await new Response(qualityProcess.stderr).text();
       const stdout = await new Response(qualityProcess.stdout).text();
+      const failure = await runBreaker("failure", path);
       return {
         ...result,
-        output: `${result.output}\\nCode quality check failed:\\n${stderr || stdout}`,
+        output: `${result.output}\\nCode quality check failed:\\n${stderr || stdout}${failure.stderr ? `\\n${failure.stderr}` : ""}`,
       };
     },
   },
