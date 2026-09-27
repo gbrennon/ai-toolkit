@@ -25,6 +25,7 @@ class TestOmpHooksInstaller:
         content = target.read_text(encoding="utf-8")
         assert 'pi.on("tool_result"' in content
         assert '"check-code-quality"' in content
+        assert '"ai-toolkit-hook-circuit-breaker"' in content
         assert '"py"' in content
         assert '"md"' not in content
 
