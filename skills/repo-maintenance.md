@@ -150,7 +150,7 @@ they are in scope — fix them.
 
 ## Step 6 — Merge the approved PR (via the git host)
 
-Only when the verdict is **Approve** and tests pass. Merge the PR **through the forge**,
+Only when **all** merge preconditions below hold. Merge the PR **through the forge**,
 never with a local merge into the default branch:
 
 ```bash
@@ -162,9 +162,25 @@ glab mr merge <number> --squash --remove-source-branch
 #   merge via the web UI or the forge REST API (POST .../pulls/<n>/merge)
 ```
 
-Before merging, confirm:
-- The reviewer verdict is **Approve** (never merge over a blocker or requested change).
-- Every deferred suggestion has a tracking issue.
+Merge preconditions — **all** required, no exceptions:
+1. A review actually ran this turn and its verdict is **Approve** (never merge an
+   unreviewed PR, and never merge over a blocker or requested change).
+2. Every CI check / workflow / action on the PR head is **green**. Confirm it
+   explicitly — do not assume:
+   ```bash
+   # GitHub
+   gh pr checks <number>            # every check must be "pass"; no fail/pending
+   # GitLab
+   glab ci status                  # pipeline for the MR head must be "success"
+   # Codeberg / Forgejo / Gitea
+   tea pulls <number> -o yaml      # inspect status/checks for the head commit
+   ```
+3. Every deferred suggestion has a tracking issue.
+
+**Merging failing or unverified work is forbidden.** If any check is failing,
+pending, or missing — or if no review ran — do **not** merge. Fix the failure,
+push, let CI and the review re-run, and only merge once everything is green and
+approved.
 
 Then clean up the merged feature branch. **REQUIRED SUB-SKILL:** use
 `finishing-a-development-branch` for the cleanup and any worktree teardown.
@@ -205,6 +221,8 @@ For the **worktree** itself:
 | One `create issue` comment per suggestion | Batch all deferred ids into a single command, separated by ` , `. |
 | Blindly implementing a finding that's wrong | Verify with `verify-pr-feedback`; push back with `receiving-code-review`. |
 | Merging with unresolved requested changes | Blocking items must be fixed before finishing. |
+| Merging with red or pending CI | All checks/workflows/actions must be green first. Verify with `gh pr checks` / `glab ci status` / `tea pulls`. |
+| Merging a PR that was never reviewed | A review must run and return **Approve** this turn before any merge. |
 | Committing / pushing / merging into the default branch | All work lands on the PR branch; merge the approved PR through the git host only. |
 | Skipping re-review after pushing fixes | The loop isn't done until the reviewer re-runs and approves. |
 | Removing the worktree this session runs inside | Don't. A per-command `cd` won't save you — the session cwd is still the deleted dir. Delete the branch here; hand worktree teardown to a main-repo session or the human. |
@@ -216,4 +234,6 @@ For the **worktree** itself:
 - "The reviewer requested changes but I think it's fine, I'll merge" → fix or push back with evidence; never merge over a blocker.
 - "I'll just push this straight to main" / "I'll merge the branch into main locally" → never. Work on the PR branch; merge approved PRs through the git host.
 - "I fixed things locally, PR is basically approved" → not until the auto-review re-runs and approves.
+- "CI is probably fine, I'll merge" → confirm every check is green first; merging failing or pending work is forbidden.
+- "No review ran but it looks good, I'll merge" → never merge an unreviewed PR.
 - "I'll remove this worktree now" while the session runs inside it → don't. Deleting your own cwd crashes the turn (`spawn bash ENOENT`); a per-command `cd` doesn't move the session cwd. Delete the branch; hand worktree teardown to a main-repo session.
