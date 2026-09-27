@@ -34,11 +34,12 @@ install-quality-cli:
 	mkdir -p $(HOME)/.local/bin $(HOME)/.config/ai-toolkit/semgrep
 	install -m 755 scripts/check-code-quality.sh $(HOME)/.local/bin/check-code-quality
 	install -m 755 scripts/check-modified-code-quality.sh $(HOME)/.local/bin/check-modified-code-quality
+	install -m 755 scripts/hook-circuit-breaker.py $(HOME)/.local/bin/ai-toolkit-hook-circuit-breaker
 	cp -r rules/semgrep/* $(HOME)/.config/ai-toolkit/semgrep/
 
 HOOK_AGENT ?= all
 
-install-hooks:
+install-hooks: install-quality-cli
 	$(UV) run install-hooks --agent $(HOOK_AGENT)
 
 install: install-mcp install-skills install-agent-rules install-omp-commands install-provider-blocks install-pi-config install-quality-cli install-hooks
