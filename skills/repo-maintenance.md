@@ -24,6 +24,9 @@ convenience, decides.
   git host** (GitHub / Codeberg / GitLab / Forgejo / …), not with a local `git merge` +
   `git push origin main`.
 - **Only merge a PR after the reviewer verdict is Approve.**
+- **Never merge a PR whose CI/workflows/actions are not all green.** If any check
+  failed, is pending, or is missing, merging is forbidden — fix it and let the
+  checks re-run first.
 
 **Announce at start:** "I'm using the repo-maintenance skill to iterate this PR through review."
 
