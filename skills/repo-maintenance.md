@@ -27,6 +27,12 @@ convenience, decides.
 - **Never merge a PR whose CI/workflows/actions are not all green.** If any check
   failed, is pending, or is missing, merging is forbidden — fix it and let the
   checks re-run first.
+- **Never commit agent/tooling artifacts.** Skills and agent scaffolding
+  ("superpowers", `.pi/`, `.claude/`, `.agents/`, `.worktrees/` internals,
+  session placeholders, and `AGENTS.md`/`CLAUDE.md` you didn't author for this
+  repo) are **never** committed. Only commit changes that belong to the PR's
+  goal; `git add -A` blindly is forbidden — stage explicit paths and review
+  `git status` first.
 
 **Announce at start:** "I'm using the repo-maintenance skill to iterate this PR through review."
 
@@ -239,4 +245,6 @@ For the **worktree** itself:
 - "I fixed things locally, PR is basically approved" → not until the auto-review re-runs and approves.
 - "CI is probably fine, I'll merge" → confirm every check is green first; merging failing or pending work is forbidden.
 - "No review ran but it looks good, I'll merge" → never merge an unreviewed PR.
+- "I'll `git add -A` to be safe" → no. That sweeps in superpowers/agent scaffolding. Stage explicit paths only.
+- "This skill / `.pi` / `AGENTS.md` change is handy, I'll commit it too" → never. Agent tooling never lands in the maintained repo.
 - "I'll remove this worktree now" while the session runs inside it → don't. Deleting your own cwd crashes the turn (`spawn bash ENOENT`); a per-command `cd` doesn't move the session cwd. Delete the branch; hand worktree teardown to a main-repo session.
