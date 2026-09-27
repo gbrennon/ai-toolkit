@@ -15,10 +15,10 @@ from ai_toolkit.install_hooks.installers.pi_hooks_installer import (
 pytestmark = pytest.mark.integration
 
 
-def _expected_write_edit_conditions() -> set[str]:
+def _expected_tool_conditions() -> set[str]:
     return {
         f"{tool}(*.{ext})"
-        for tool in ("Write", "Edit")
+        for tool in ("Write", "Edit", "Read")
         for ext in CODE_EXTENSIONS
     }
 
@@ -36,7 +36,7 @@ class TestPiHooksInstaller:
         assert groups[0]["matcher"] == HOOK_MATCHER
         hooks = groups[0]["hooks"]
         conditions = {hook["if"] for hook in hooks}
-        assert conditions == _expected_write_edit_conditions()
+        assert conditions == _expected_tool_conditions()
         assert all(
             hook["type"] == "command"
             and hook["command"] == "check-modified-code-quality"
