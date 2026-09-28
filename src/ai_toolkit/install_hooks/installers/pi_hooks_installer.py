@@ -6,7 +6,7 @@ from typing import Any, Self
 PI_SETTINGS: Path = Path.home() / ".pi" / "agent" / "settings.json"
 HOOK_PACKAGE: str = "@hsingjui/pi-hooks"
 HOOK_CMD: str = "check-modified-code-quality"
-HOOK_MATCHER: str = "write|edit"
+HOOK_MATCHER: str = "write|edit|read"
 NOTIFICATION_CMD: str = (
     "if [ -n \"${TMUX:-}\" ]; then "
     "tmux_state=$(tmux display-message -p '#{client_session}|#{window_active}'); "
@@ -44,7 +44,7 @@ class PiHooksInstaller:
                     "if": f"{tool}(*.{extension})",
                     "command": HOOK_CMD,
                 }
-                for tool in ("Write", "Edit")
+                for tool in ("Write", "Edit", "Read")
                 for extension in CODE_EXTENSIONS
             ],
         }

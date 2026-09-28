@@ -12,26 +12,76 @@ const CODE_EXTENSIONS: Set<string> = new Set([
   "cs", "c", "h", "cc", "cpp", "hpp", "cxx", "rb", "php", "scala", "lua", "sh",
 ]);
 const EDIT_TOOLS: Set<string> = new Set(["write", "edit"]);
+const READ_TOOLS: Set<string> = new Set(["read"]);
 
 function isSourceCodePath(path: string): boolean {
   const extension = path.split(".").pop()?.toLowerCase() ?? "";
   return CODE_EXTENSIONS.has(extension);
 }
 
+async function runBreaker(
+  action: string,
+  path: string,
+  cwd: string,
+  session: string,
+): Promise<{ code: number; stderr: string }> {
+  const process = Bun.spawn([
+    "ai-toolkit-hook-circuit-breaker",
+    action,
+    "--session",
+    session,
+    "--cwd",
+    cwd,
+    "--path",
+    path,
+  ], { cwd, stdout: "pipe", stderr: "pipe" });
+  const code = await process.exited;
+  const stderr = await new Response(process.stderr).text();
+  return { code, stderr };
+}
+
 export default function qualityHook(pi: HookAPI): void {
   pi.on("tool_result", async (event, ctx) => {
-    if (event.isError || !EDIT_TOOLS.has(event.toolName)) return;
+    if (event.isError) return;
+    const toolName = event.toolName.toLowerCase();
+    if (!EDIT_TOOLS.has(toolName) && !READ_TOOLS.has(toolName)) return;
     const path = String(event.input.path ?? "");
     if (!path || !isSourceCodePath(path)) return;
 
-    const result = await pi.exec("check-code-quality", [path], { cwd: ctx.cwd });
-    if (result.code === 0) return;
+    if (READ_TOOLS.has(toolName)) {
+      await runBreaker(
+        "reset", path, ctx.cwd,
+        String((ctx as { sessionId?: string }).sessionId ?? ctx.cwd),
+      );
+      return;
+    }
 
+    const session = String(
+      (ctx as { sessionId?: string }).sessionId ?? ctx.cwd,
+    );
+    const before = await runBreaker("before", path, ctx.cwd, session);
+    if (before.code !== 0) {
+      return {
+        content: [
+          ...event.content,
+          { type: "text", text: before.stderr },
+        ],
+      };
+    }
+
+    const result = await pi.exec("check-code-quality", [path], { cwd: ctx.cwd });
+    if (result.code === 0) {
+      await runBreaker("success", path, ctx.cwd, session);
+      return;
+    }
+
+    const failure = await runBreaker("failure", path, ctx.cwd, session);
     const output = result.stderr || result.stdout;
+    const terminal = failure.stderr ? `\\n${failure.stderr}` : "";
     return {
       content: [
         ...event.content,
-        { type: "text", text: `Code quality check failed:\\n${output}` },
+        { type: "text", text: `Code quality check failed:\\n${output}${terminal}` },
       ],
     };
   });
