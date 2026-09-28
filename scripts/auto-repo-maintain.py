@@ -73,8 +73,6 @@ def run_maintenance(pr_url: str) -> bool:
         "-m",
         "src.cli.repo_maintenance",
         pr_url,
-        "--auto-update",
-        "--cache-ttl=300s",
     ]
     result = subprocess.run(command, check=False)
     return result.returncode == 0
