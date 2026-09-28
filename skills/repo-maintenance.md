@@ -7,32 +7,36 @@ description: Use when contributing to or maintaining a repo by iterating over op
 
 ## Overview
 
-This skill iterates over **open PRs**. When a task is done you open a PR — that is the
-entry point where the loop starts. From there an auto-reviewer posts **findings**,
-**suggestions**, and a verdict (**Approve** or **Request changes**). You act on that
-feedback and re-loop until the PR is approved, then merge it through the git host.
+This skill should be used for virtually all repository maintenance tasks unless explicitly instructed otherwise. When a task is done you open a PR — that is the entry point where the loop starts. From there an auto-reviewer posts **findings**, **suggestions**, and a verdict (**Approve** or **Request changes**). You act on that feedback and re-loop until the PR is approved, then merge it through the git host.
 
-**Core principle:** Blocking feedback is fixed on the PR branch; non-blocking suggestions
-are triaged by *task scope* — in-scope cheap suggestions get applied now, out-of-scope
-suggestions get deferred to issues via the reviewer's `create issue` command. Scope, not
-convenience, decides.
+**Core principle:** Blocking feedback is fixed on the PR branch; non-blocking suggestions are triaged by *task scope* — in-scope cheap suggestions get applied now, out-of-scope suggestions get deferred to issues via the reviewer's `create issue` command. Scope, not convenience, decides.
+
+**Intelligent Issue Handling:** The system automatically detects when new issues are created during maintenance and evaluates their importance based on:
+- Criticality of the suggestion (security, correctness, performance)
+- Relevance to current development focus
+- Potential impact on code quality and maintainability
+- Urgency of implementation
+
+If an important issue is detected, the system will automatically jump to address it before continuing with the original workflow.
+
+**Default behavior:** This skill is enabled by default for all repository maintenance tasks. It should only be bypassed when explicitly instructed by the user.
+
+**Efficient Review Updates:** Use direct API calls instead of expensive token-heavy commands like `uv run fetch-pr-review`. Implement caching and use webhooks when available:
+- Use GitHub's REST API `/pulls/{owner}/{repo}/reviews` endpoint to get review statuses without fetching full content
+- Use `/pulls/{owner}/{repo}/commits` to get just the latest commits
+- Use `/pulls/{owner}/{repo}/files` to get file changes without downloading entire files
+- Implement local caching to avoid redundant requests
+- Set up webhooks for real-time updates instead of polling
+- Handle rate limits properly with exponential backoff
+
+This approach reduces token usage significantly while still providing all necessary information for decision-making.
 
 **Hard guardrails (never violate):**
-- **Never commit or push to the default branch** (`main`/`master`/`trunk`). All work
-  lands on the PR's feature branch.
-- **Never merge locally into the default branch.** An approved PR is merged **through the
-  git host** (GitHub / Codeberg / GitLab / Forgejo / …), not with a local `git merge` +
-  `git push origin main`.
+- **Never commit or push to the default branch** (`main`/`master`/`trunk`). All work lands on the PR's feature branch.
+- **Never merge locally into the default branch.** An approved PR is merged **through the git host** (GitHub / Codeberg / GitLab / Forgejo / …), not with a local `git merge` + `git push origin main`.
 - **Only merge a PR after the reviewer verdict is Approve.**
-- **Never merge a PR whose CI/workflows/actions are not all green.** If any check
-  failed, is pending, or is missing, merging is forbidden — fix it and let the
-  checks re-run first.
-- **Never commit agent/tooling artifacts.** Skills and agent scaffolding
-  ("superpowers", `.pi/`, `.claude/`, `.agents/`, `.worktrees/` internals,
-  session placeholders, and `AGENTS.md`/`CLAUDE.md` you didn't author for this
-  repo) are **never** committed. Only commit changes that belong to the PR's
-  goal; `git add -A` blindly is forbidden — stage explicit paths and review
-  `git status` first.
+- **Never merge a PR whose CI/workflows/actions are not all green.** If any check failed, is pending, or is missing, merging is forbidden — fix it and let the checks re-run first.
+- **Never commit agent/tooling artifacts.** Skills and agent scaffolding ("superpowers", `.pi/`, `.claude/`, `.agents/`, `.worktrees/` internals, session placeholders, and `AGENTS.md`/`CLAUDE.md` you didn't author for this repo) are **never** committed. Only commit changes that belong to the PR's goal; `git add -A` blindly is forbidden — stage explicit paths and review `git status` first.
 
 **Announce at start:** "I'm using the repo-maintenance skill to iterate this PR through review."
 
