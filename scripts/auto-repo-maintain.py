@@ -67,7 +67,11 @@ def run_maintenance(pr_url: str) -> bool:
     command: list[str] = [
         "uv",
         "run",
-        "repo-maintenance",
+        "--with",
+        "typer",
+        "python",
+        "-m",
+        "src.cli.repo_maintenance",
         pr_url,
         "--auto-update",
         "--cache-ttl=300s",
