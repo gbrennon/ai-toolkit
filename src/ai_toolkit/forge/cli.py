@@ -25,7 +25,8 @@ def resolve_forge_cli(forge: str | None = None) -> str:
     cli = CLI_BY_FORGE[selected_forge]
     if shutil.which(cli) is None:
         raise ForgeCliUnavailable(
-            f"{cli} is required for {selected_forge} repositories but is not installed"
+            f"{cli} is required for {selected_forge} repositories but is not installed. "
+            f"Install {cli}, authenticate with `{cli} auth login`, and rerun the command."
         )
     return cli
 

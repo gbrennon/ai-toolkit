@@ -174,7 +174,7 @@ never with a local merge into the default branch:
 
 ```bash
 # Use the command/API adapter selected from the current repository remote.
-$FORGE_CLI pr merge <number> --squash --delete-branch
+$FORGE_CLI pr merge <number> --squash
 ```
 
 For hosts whose supported merge API differs from the selected CLI, use the corresponding
@@ -226,7 +226,7 @@ worktree removal:
 
 ```bash
 git branch -d <branch>            # local (if not already gone)
-git push origin --delete <branch> # remote (or rely on --delete-branch at merge)
+git push origin --delete <branch> # remote, after worktree cleanup
 ```
 
 **Never** do `git checkout main && git merge <branch> && git push`.

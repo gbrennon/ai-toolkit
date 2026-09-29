@@ -27,7 +27,7 @@ CODE_EXTENSIONS: tuple[str, ...] = (
 def install_hooks() -> bool:
     """Copy the package's PR-opened hook into the local hooks directory."""
     hooks_dir = Path(".hooks")
-    source_file = Path(__file__).resolve().parents[3] / "hooks" / "pr_opened_hook.py"
+    source_file = Path(__file__).resolve().parents[2] / "hooks" / "pr_opened_hook.py"
     destination = hooks_dir / source_file.name
 
     try:
