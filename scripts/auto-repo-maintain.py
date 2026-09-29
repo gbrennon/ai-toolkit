@@ -71,7 +71,7 @@ def run_maintenance(pr_url: str) -> bool:
         "typer",
         "python",
         "-m",
-        "src.cli.repo_maintenance",
+        "ai_toolkit.repo_maintenance",
         pr_url,
     ]
     result = subprocess.run(command, check=False)
