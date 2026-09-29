@@ -7,32 +7,36 @@ description: Use when contributing to or maintaining a repo by iterating over op
 
 ## Overview
 
-This skill iterates over **open PRs**. When a task is done you open a PR — that is the
-entry point where the loop starts. From there an auto-reviewer posts **findings**,
-**suggestions**, and a verdict (**Approve** or **Request changes**). You act on that
-feedback and re-loop until the PR is approved, then merge it through the git host.
+This skill should be used for virtually all repository maintenance tasks unless explicitly instructed otherwise. When a task is done you open a PR — that is the entry point where the loop starts. From there an auto-reviewer posts **findings**, **suggestions**, and a verdict (**Approve** or **Request changes**). You act on that feedback and re-loop until the PR is approved, then merge it through the git host.
 
-**Core principle:** Blocking feedback is fixed on the PR branch; non-blocking suggestions
-are triaged by *task scope* — in-scope cheap suggestions get applied now, out-of-scope
-suggestions get deferred to issues via the reviewer's `create issue` command. Scope, not
-convenience, decides.
+**Core principle:** Blocking feedback is fixed on the PR branch; non-blocking suggestions are triaged by *task scope* — in-scope cheap suggestions get applied now, out-of-scope suggestions get deferred to issues via the reviewer's `create issue` command. Scope, not convenience, decides.
+
+**Intelligent Issue Handling:** The system automatically detects when new issues are created during maintenance and evaluates their importance based on:
+- Criticality of the suggestion (security, correctness, performance)
+- Relevance to current development focus
+- Potential impact on code quality and maintainability
+- Urgency of implementation
+
+If an important issue is detected, the system will automatically jump to address it before continuing with the original workflow.
+
+**Default behavior:** This skill is enabled by default for all repository maintenance tasks. It should only be bypassed when explicitly instructed by the user.
+
+**Efficient Review Updates:** Use direct API calls rather than expensive token-heavy commands like `uv run fetch-pr-review`. Implement caching and use webhooks when available:
+- Use GitHub's REST API `/pulls/{owner}/{repo}/reviews` endpoint to get review statuses without fetching full content
+- Use `/pulls/{owner}/{repo}/commits` to get just the latest commits
+- Use `/pulls/{owner}/{repo}/files` to get file changes without downloading entire files
+- Implement local caching to avoid redundant requests
+- Set up webhooks for real-time updates rather than polling
+- Handle rate limits properly with exponential backoff
+
+This approach reduces token usage significantly while still providing all necessary information for decision-making.
 
 **Hard guardrails (never violate):**
-- **Never commit or push to the default branch** (`main`/`master`/`trunk`). All work
-  lands on the PR's feature branch.
-- **Never merge locally into the default branch.** An approved PR is merged **through the
-  git host** (GitHub / Codeberg / GitLab / Forgejo / …), not with a local `git merge` +
-  `git push origin main`.
+- **Never commit or push to the default branch** (`main`/`master`/`trunk`). All work lands on the PR's feature branch.
+- **Never merge locally into the default branch.** An approved PR is merged **through the git host** (GitHub / Codeberg / GitLab / Forgejo / …), not with a local `git merge` + `git push origin main`.
 - **Only merge a PR after the reviewer verdict is Approve.**
-- **Never merge a PR whose CI/workflows/actions are not all green.** If any check
-  failed, is pending, or is missing, merging is forbidden — fix it and let the
-  checks re-run first.
-- **Never commit agent/tooling artifacts.** Skills and agent scaffolding
-  ("superpowers", `.pi/`, `.claude/`, `.agents/`, `.worktrees/` internals,
-  session placeholders, and `AGENTS.md`/`CLAUDE.md` you didn't author for this
-  repo) are **never** committed. Only commit changes that belong to the PR's
-  goal; `git add -A` blindly is forbidden — stage explicit paths and review
-  `git status` first.
+- **Never merge a PR whose CI/workflows/actions are not all green.** If any check failed, is pending, or is missing, merging is forbidden — fix it and let the checks re-run first.
+- **Never commit agent/tooling artifacts.** Skills and agent scaffolding ("superpowers", `.pi/`, `.claude/`, `.agents/`, `.worktrees/` internals, session placeholders, and `AGENTS.md`/`CLAUDE.md` you didn't author for this repo) are **never** committed. Only commit changes that belong to the PR's goal; `git add -A` blindly is forbidden — stage explicit paths and review `git status` first.
 
 **Announce at start:** "I'm using the repo-maintenance skill to iterate this PR through review."
 
@@ -60,11 +64,17 @@ digraph loop {
 
 ## Prerequisites
 
-Detect the forge once — every forge operation below auto-detects from the remote URL:
+Select the forge CLI once from the current repository remote before any forge operation,
+including post-merge status and rerun commands:
 
 ```bash
-uv run forge-detect
+FORGE_CLI="$(uv run forge-detect --cli)"
 ```
+
+The resolver selects `gh` for GitHub and `fj` for Forgejo-family or Codeberg hosts based
+on the remote. Use `$FORGE_CLI` (or the corresponding supported command/API adapter)
+for every merge, check, status, rerun, and API operation; do not assume a forge or
+hard-code a CLI.
 
 Know the **task scope** before you start: the originating issue, spec, or ticket. If
 there is no written scope, state in one sentence what this PR is and is not about. You
@@ -121,7 +131,7 @@ goal expansion, or a broad refactor the task never asked for.
 | Suggestion — out of scope | No | No | Defer to an issue via `create issue`. |
 
 Rule of thumb: **a suggestion never expands the PR's scope.** If applying it would grow
-the diff beyond the task, it becomes a future issue instead.
+the diff beyond the task, it becomes a future issue rather than an immediate change.
 
 ## Step 4 — Defer suggestions to issues
 
@@ -163,13 +173,21 @@ Only when **all** merge preconditions below hold. Merge the PR **through the for
 never with a local merge into the default branch:
 
 ```bash
-# GitHub
-gh pr merge <number> --squash --delete-branch
-# GitLab
-glab mr merge <number> --squash --remove-source-branch
-# Codeberg / Forgejo / Gitea
-#   merge via the web UI or the forge REST API (POST .../pulls/<n>/merge)
+# Use the command/API adapter selected from the current repository remote.
+$FORGE_CLI pr merge <number> --squash
 ```
+
+For hosts whose supported merge API differs from the selected CLI, use the corresponding
+`$FORGE_CLI`-selected API adapter rather than assuming GitHub or hard-coding another CLI.
+
+### Post-merge workflow tracking
+
+After merging, continue tracking the merged commit's CI/CD workflows until each reaches a
+terminal state. Use the selected `$FORGE_CLI` (or its supported API adapter) to poll
+workflow/check status for that merge commit. If a workflow fails, rerun that workflow
+once with the selected CLI and resume tracking it. If it fails again, report the
+persistent failure and stop retrying that workflow; do not silently ignore it. Record a
+successful retry as the workflow's final outcome.
 
 Merge preconditions — **all** required, no exceptions:
 1. A review actually ran this turn and its verdict is **Approve** (never merge an
@@ -181,8 +199,8 @@ Merge preconditions — **all** required, no exceptions:
    gh pr checks <number>            # every check must be "pass"; no fail/pending
    # GitLab
    glab ci status                  # pipeline for the MR head must be "success"
-   # Codeberg / Forgejo / Gitea
-   tea pulls <number> -o yaml      # inspect status/checks for the head commit
+   # Codeberg / Forgejo-compatible hosts
+   $FORGE_CLI pulls <number> -o yaml      # inspect status/checks for the head commit
    ```
 3. Every deferred suggestion has a tracking issue.
 
@@ -191,34 +209,27 @@ pending, or missing — or if no review ran — do **not** merge. Fix the failur
 push, let CI and the review re-run, and only merge once everything is green and
 approved.
 
-Then clean up the merged feature branch. **REQUIRED SUB-SKILL:** use
-`finishing-a-development-branch` for the cleanup and any worktree teardown.
-
-**Never** do `git checkout main && git merge <branch> && git push`.
-
-**Never remove the worktree this session is running inside.** If the loop is
-running in a worktree (e.g. you handed off into `.worktrees/<name>`), that
-directory is the session's process cwd. Deleting it makes every later
-`spawn bash` fail with `ENOENT` — and a `cd main && git worktree remove` inside
-a single command does **not** save you, because it only moves that one shell,
-not the session's cwd. The next command and the turn's Stop hook still spawn in
-the deleted directory.
-
-So split the teardown:
+After the host-side merge succeeds, record the source worktree path and remove it
+before deleting the branch. **REQUIRED SUB-SKILL:** use
+`finishing-a-development-branch` for the cleanup and any worktree removal.
 
 ```bash
-# Branch deletion is always safe from anywhere:
-git branch -d <branch>            # local (if not already gone)
-git push origin --delete <branch> # remote (or rely on --delete-branch at merge)
+# Run from the main repository or another directory outside the source worktree.
+git worktree remove <source-worktree-path>
+git worktree prune
 ```
 
-For the **worktree** itself:
+A maintenance process whose current cwd is the source worktree being removed must not
+remove its own cwd. It must hand cleanup to the main-repository session (or the human),
+report the handoff, and stop. Branch deletion is separate and happens only after the
+worktree removal:
 
-- If you are **not** inside it (session cwd is the main repo), remove it now:
-  `git worktree remove .worktrees/<name> && git worktree prune`.
-- If you **are** inside it, do **not** remove it in this session. Hand the
-  worktree teardown back to a session whose cwd is the main repo (or to the
-  human), then stop. Removing your own cwd is never worth a crashed turn.
+```bash
+git branch -d <branch>            # local (if not already gone)
+git push origin --delete <branch> # remote, after worktree cleanup
+```
+
+**Never** do `git checkout main && git merge <branch> && git push`.
 
 ## Common Mistakes
 
@@ -230,16 +241,16 @@ For the **worktree** itself:
 | One `create issue` comment per suggestion | Batch all deferred ids into a single command, separated by ` , `. |
 | Blindly implementing a finding that's wrong | Verify with `verify-pr-feedback`; push back with `receiving-code-review`. |
 | Merging with unresolved requested changes | Blocking items must be fixed before finishing. |
-| Merging with red or pending CI | All checks/workflows/actions must be green first. Verify with `gh pr checks` / `glab ci status` / `tea pulls`. |
+| Merging with red or pending CI | All checks/workflows/actions must be green first. Verify with the selected `$FORGE_CLI` or its supported API adapter. |
 | Merging a PR that was never reviewed | A review must run and return **Approve** this turn before any merge. |
 | Committing / pushing / merging into the default branch | All work lands on the PR branch; merge the approved PR through the git host only. |
 | Skipping re-review after pushing fixes | The loop isn't done until the reviewer re-runs and approves. |
-| Removing the worktree this session runs inside | Don't. A per-command `cd` won't save you — the session cwd is still the deleted dir. Delete the branch here; hand worktree teardown to a main-repo session or the human. |
+| Removing the worktree this session runs inside | Don't. A per-command `cd` won't save you — the session cwd is still the deleted dir. Delete the branch here; hand worktree cleanup to a main-repo session or the human. |
 
 ## Red Flags — STOP
 
 - "I'll just apply this out-of-scope suggestion since it's small" → scope decides, not size. Defer it.
-- "I'll drop this suggestion, it's minor" → create an issue instead.
+- "I'll drop this suggestion, it's minor" → create an issue rather than dropping it.
 - "The reviewer requested changes but I think it's fine, I'll merge" → fix or push back with evidence; never merge over a blocker.
 - "I'll just push this straight to main" / "I'll merge the branch into main locally" → never. Work on the PR branch; merge approved PRs through the git host.
 - "I fixed things locally, PR is basically approved" → not until the auto-review re-runs and approves.
@@ -247,4 +258,4 @@ For the **worktree** itself:
 - "No review ran but it looks good, I'll merge" → never merge an unreviewed PR.
 - "I'll `git add -A` to be safe" → no. That sweeps in superpowers/agent scaffolding. Stage explicit paths only.
 - "This skill / `.pi` / `AGENTS.md` change is handy, I'll commit it too" → never. Agent tooling never lands in the maintained repo.
-- "I'll remove this worktree now" while the session runs inside it → don't. Deleting your own cwd crashes the turn (`spawn bash ENOENT`); a per-command `cd` doesn't move the session cwd. Delete the branch; hand worktree teardown to a main-repo session.
+- "I'll remove this worktree now" while the session runs inside it → don't. Deleting your own cwd crashes the turn (`spawn bash ENOENT`); a per-command `cd` doesn't move the session cwd. Delete the branch; hand worktree cleanup to a main-repo session.
