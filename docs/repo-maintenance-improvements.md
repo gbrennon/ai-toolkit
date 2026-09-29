@@ -58,6 +58,33 @@ Instead of using expensive full-content retrieval methods, we've implemented a d
 
 The skill is now set as the default for all repository maintenance tasks unless explicitly overridden by the user. This ensures consistent application of best practices across all projects.
 
+### 4. Remote-Aware Forge Operations and Worktree Teardown
+
+Select the forge CLI from the current repository remote before running merge, check, or
+API operations:
+
+```bash
+FORGE_CLI="$(uv run forge-detect --cli)"
+```
+
+The resolver selects `gh` for GitHub and `fj` for Forgejo, Gitea, or Codeberg. Use
+`$FORGE_CLI` or its corresponding supported command/API adapter instead of assuming a
+forge or hard-coding one CLI.
+
+After the host-side merge succeeds, record the source worktree path and clean it up from
+outside that worktree:
+
+```bash
+# Run from the main repository or another directory outside the source worktree.
+git worktree remove <source-worktree-path>
+git worktree prune
+```
+
+A maintenance process whose current cwd is the source worktree being removed must not
+remove its own cwd. It must hand cleanup to the main-repository session (or the human),
+report the handoff, and stop. Delete the branch separately and only after worktree
+removal. Local merges into the default branch remain prohibited.
+
 ## Workflow Diagram
 
 ```dot
