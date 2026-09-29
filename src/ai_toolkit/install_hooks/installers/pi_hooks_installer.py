@@ -1,4 +1,5 @@
 import json
+import shutil
 import sys
 from pathlib import Path
 from typing import Any, Self
@@ -21,6 +22,29 @@ CODE_EXTENSIONS: tuple[str, ...] = (
     "java", "kt", "swift", "cs", "c", "h", "cc",
     "cpp", "hpp", "cxx", "rb", "php", "scala", "lua", "sh",
 )
+
+
+def install_hooks() -> bool:
+    """Copy the package's PR-opened hook into the local hooks directory."""
+    hooks_dir = Path(".hooks")
+    source_file = Path(__file__).resolve().parents[2] / "hooks" / "pr_opened_hook.py"
+    destination = hooks_dir / source_file.name
+
+    try:
+        hooks_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_file, destination)
+        registry = {
+            "installed": [source_file.name],
+            "version": "0.1.0",
+            "last_updated": "2026-09-28",
+        }
+        (hooks_dir / "__registry__.json").write_text(
+            json.dumps(registry, indent=4), encoding="utf-8"
+        )
+        return True
+    except (OSError, shutil.Error) as error:
+        print(f"[HOOK] Failed to install hook: {error}")
+        return False
 
 
 class PiHooksInstaller:

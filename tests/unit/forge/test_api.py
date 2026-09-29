@@ -176,6 +176,9 @@ class TestClassifyForge:
         assert classify_forge("gitea.com") == "gitea"
         assert classify_forge("git.gitea.instance") == "gitea"
 
+    def test_forgejo(self) -> None:
+        assert classify_forge("forgejo.example.com") == "forgejo"
+
     def test_unknown(self) -> None:
         assert classify_forge("myhost.com") == "unknown"
         assert classify_forge("") == "unknown"
