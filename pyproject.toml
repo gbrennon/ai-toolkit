@@ -16,6 +16,7 @@ dependencies = [
 
 [project.scripts]
 repo-maintenance = "ai_toolkit.repo_maintenance:main"
+forge-detect = "ai_toolkit.forge.detect:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
