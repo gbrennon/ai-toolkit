@@ -85,6 +85,15 @@ remove its own cwd. It must hand cleanup to the main-repository session (or the 
 report the handoff, and stop. Delete the branch separately and only after worktree
 removal. Local merges into the default branch remain prohibited.
 
+### Post-merge CI/CD tracking and bounded retries
+
+After merging, continue tracking the merged commit's CI/CD workflows until each reaches a
+terminal state. Use the selected `$FORGE_CLI` (or its supported API adapter) to poll
+workflow/check status for that merge commit. If a workflow fails, rerun that workflow
+once with the selected CLI and resume tracking it. If it fails again, report the
+persistent failure and stop retrying that workflow; do not silently ignore it. Record a
+successful retry as the workflow's final outcome.
+
 ## Workflow Diagram
 
 ```dot

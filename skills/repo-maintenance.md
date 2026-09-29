@@ -64,7 +64,8 @@ digraph loop {
 
 ## Prerequisites
 
-Select the forge CLI once from the current repository remote before any forge operation:
+Select the forge CLI once from the current repository remote before any forge operation,
+including post-merge status and rerun commands:
 
 ```bash
 FORGE_CLI="$(uv run forge-detect --cli)"
@@ -72,7 +73,8 @@ FORGE_CLI="$(uv run forge-detect --cli)"
 
 The resolver selects `gh` for GitHub and `fj` for Forgejo-family or Codeberg hosts based
 on the remote. Use `$FORGE_CLI` (or the corresponding supported command/API adapter)
-for every merge, check, and API operation; do not assume a forge or hard-code a CLI.
+for every merge, check, status, rerun, and API operation; do not assume a forge or
+hard-code a CLI.
 
 Know the **task scope** before you start: the originating issue, spec, or ticket. If
 there is no written scope, state in one sentence what this PR is and is not about. You
@@ -177,6 +179,15 @@ $FORGE_CLI pr merge <number> --squash --delete-branch
 
 For hosts whose supported merge API differs from the selected CLI, use the corresponding
 `$FORGE_CLI`-selected API adapter rather than assuming GitHub or hard-coding another CLI.
+
+### Post-merge workflow tracking
+
+After merging, continue tracking the merged commit's CI/CD workflows until each reaches a
+terminal state. Use the selected `$FORGE_CLI` (or its supported API adapter) to poll
+workflow/check status for that merge commit. If a workflow fails, rerun that workflow
+once with the selected CLI and resume tracking it. If it fails again, report the
+persistent failure and stop retrying that workflow; do not silently ignore it. Record a
+successful retry as the workflow's final outcome.
 
 Merge preconditions — **all** required, no exceptions:
 1. A review actually ran this turn and its verdict is **Approve** (never merge an
