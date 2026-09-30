@@ -269,7 +269,6 @@ pending, or missing — or if no review ran — do **not** merge. Fix the failur
 push, let CI and the review re-run, and only merge once everything is green and
 approved.
 
-<<<<<<< HEAD
 After the forge confirms the PR is merged, remove the merged feature branch's
 worktree and clean up the branch. **REQUIRED SUB-SKILL:** use
 `finishing-a-development-branch` for the cleanup and any worktree teardown.
@@ -288,11 +287,6 @@ not the session's cwd. The next command and the turn's Stop hook still spawn in
 the deleted directory.
 
 So split the teardown:
-=======
-After the host-side merge succeeds, record the source worktree path and remove it
-before deleting the branch. **REQUIRED SUB-SKILL:** use
-`finishing-a-development-branch` for the cleanup and any worktree removal.
->>>>>>> 297b1f20dedecc5a8e48846f326a923c4b9e9091
 
 ```bash
 # Run from the main repository or another directory outside the source worktree.
@@ -331,12 +325,8 @@ git push origin --delete <branch> # remote, after worktree cleanup
 | Using vague or non-conventional commit messages | Classify every change, including miscellaneous work, with a defined type and use `<type>(<scope>): <imperative description>`. Use `chore` only when no more specific type fits. |
 | Committing / pushing / merging into the default branch | All work lands on the PR branch; merge the approved PR through the git host only. |
 | Skipping re-review after pushing fixes | The loop isn't done until the reviewer re-runs and approves. |
-<<<<<<< HEAD
 | Leaving a merged worktree behind | Remove it after the forge confirms the merge. If this session runs inside it, hand removal to a main-repo session or the human. |
 | Removing the worktree this session runs inside | Don't. A per-command `cd` won't save you — the session cwd is still the deleted dir. Delete the branch here; hand worktree teardown to a main-repo session or the human. |
-=======
-| Removing the worktree this session runs inside | Don't. A per-command `cd` won't save you — the session cwd is still the deleted dir. Delete the branch here; hand worktree cleanup to a main-repo session or the human. |
->>>>>>> 297b1f20dedecc5a8e48846f326a923c4b9e9091
 
 ## Red Flags — STOP
 
@@ -348,17 +338,13 @@ git push origin --delete <branch> # remote, after worktree cleanup
 - "CI is probably fine, I'll merge" → confirm every check is green first; merging failing or pending work is forbidden.
 - "That hook/lint/test finding is unrelated, I'll ignore it" → not on a modified file. Investigate and resolve it, or document an evidence-based scope decision before continuing.
 - "No review ran but it looks good, I'll merge" → never merge an unreviewed PR.
-<<<<<<< HEAD
 - "I'll `git add -A` to be safe" → no. That can sweep in unrelated session state,
   credentials, or temporary worktree files. Stage explicit paths only.
+- "This skill / `.pi` / `AGENTS.md` change is handy, I'll commit it too" → never.
+  Agent tooling never lands in the maintained repo.
 - "I'll call the commit `changes`" → no. Use a focused Conventional Commit with
   a meaningful type, optional scope, and imperative description.
 - "This generated session artifact belongs in the PR" → verify it is part of the
   repository's product and the PR scope. Project-owned skills and installers are
   valid; accidental runtime state is not.
 - "I'll remove this worktree now" while the session runs inside it → don't. Deleting your own cwd crashes the turn (`spawn bash ENOENT`); a per-command `cd` doesn't move the session cwd. Delete the branch; hand worktree teardown to a main-repo session.
-=======
-- "I'll `git add -A` to be safe" → no. That sweeps in superpowers/agent scaffolding. Stage explicit paths only.
-- "This skill / `.pi` / `AGENTS.md` change is handy, I'll commit it too" → never. Agent tooling never lands in the maintained repo.
-- "I'll remove this worktree now" while the session runs inside it → don't. Deleting your own cwd crashes the turn (`spawn bash ENOENT`); a per-command `cd` doesn't move the session cwd. Delete the branch; hand worktree cleanup to a main-repo session.
->>>>>>> 297b1f20dedecc5a8e48846f326a923c4b9e9091
