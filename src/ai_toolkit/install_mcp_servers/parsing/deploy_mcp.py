@@ -8,7 +8,7 @@ from ai_toolkit.install_mcp_servers.models.agent_platform import AgentPlatform
 from ai_toolkit.shared_kernel.dotenv import load_dotenv
 
 
-def _agent_target_path(platform: AgentPlatform) -> Path:
+def agent_target_path(platform: AgentPlatform) -> Path:
     """Return the absolute config path for a given agent platform."""
     return Path.home() / platform.config_path
 
