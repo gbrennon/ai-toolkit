@@ -26,7 +26,7 @@ from ai_toolkit.install_mcp_servers.installers.vibe_installer import (
 )
 from ai_toolkit.install_mcp_servers.models.agent_platform import AgentPlatform
 from ai_toolkit.install_mcp_servers.parsing.deploy_mcp import (
-    _agent_target_path,
+    agent_target_path,
     deploy_mcp,
 )
 from ai_toolkit.install_mcp_servers.secrets import check_mcp_secrets
@@ -38,7 +38,7 @@ _DEFAULT_TARGET = (
 
 def _build_agent_targets() -> dict[AgentPlatform, Path]:
     """Return config paths for every known agent platform."""
-    return {p: _agent_target_path(p) for p in AgentPlatform}
+    return {p: agent_target_path(p) for p in AgentPlatform}
 
 
 def main(
