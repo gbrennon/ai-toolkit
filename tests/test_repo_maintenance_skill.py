@@ -48,3 +48,29 @@ def test_skill_defines_reasoned_review_commands():
     assert "Do not create an issue for every suggestion" in SKILL
     assert "Do not dismiss a suggestion merely because it is out of scope" in SKILL
     assert "reason" in SKILL.lower()
+
+
+def test_skill_requires_pre_pr_worktree_synchronization():
+    assert "git fetch origin" in SKILL
+    assert "DEFAULT_BRANCH=" in SKILL
+    assert "git merge-base --is-ancestor" in SKILL
+    assert "git status --porcelain            # MUST still be empty after rebase" in SKILL
+    assert "git branch --show-current" in SKILL
+    assert "git worktree list" in SKILL
+
+
+def test_skill_places_synchronization_gate_before_push_instruction():
+    sync_gate = SKILL.index("Confirm the worktree and branch are in sync")
+    push_instruction = SKILL.index("- **Push the feature branch**")
+
+    assert sync_gate < push_instruction
+
+
+def test_skill_source_has_no_merge_conflict_markers():
+    assert "<<<<<<<" not in SKILL
+    assert "=======" not in SKILL
+    assert ">>>>>>>" not in SKILL
+
+
+def test_skill_merge_command_deletes_merged_branch():
+    assert "$FORGE_CLI pr merge <number> --squash --delete" in SKILL
