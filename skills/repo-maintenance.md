@@ -269,7 +269,6 @@ pending, or missing — or if no review ran — do **not** merge. Fix the failur
 push, let CI and the review re-run, and only merge once everything is green and
 approved.
 
-<<<<<<< HEAD
 After the forge confirms the PR is merged, remove the merged feature branch's
 worktree and clean up the branch. **REQUIRED SUB-SKILL:** use
 `finishing-a-development-branch` for the cleanup and any worktree teardown.
@@ -288,11 +287,6 @@ not the session's cwd. The next command and the turn's Stop hook still spawn in
 the deleted directory.
 
 So split the teardown:
-=======
-After the host-side merge succeeds, record the source worktree path and remove it
-before deleting the branch. **REQUIRED SUB-SKILL:** use
-`finishing-a-development-branch` for the cleanup and any worktree removal.
->>>>>>> 297b1f20dedecc5a8e48846f326a923c4b9e9091
 
 ```bash
 # Run from the main repository or another directory outside the source worktree.
@@ -331,7 +325,6 @@ git push origin --delete <branch> # remote, after worktree cleanup
 | Using vague or non-conventional commit messages | Classify every change, including miscellaneous work, with a defined type and use `<type>(<scope>): <imperative description>`. Use `chore` only when no more specific type fits. |
 | Committing / pushing / merging into the default branch | All work lands on the PR branch; merge the approved PR through the git host only. |
 | Skipping re-review after pushing fixes | The loop isn't done until the reviewer re-runs and approves. |
-<<<<<<< HEAD
 | Leaving a merged worktree behind | Remove it after the forge confirms the merge. If this session runs inside it, hand removal to a main-repo session or the human. |
 | Removing the worktree this session runs inside | Don't. A per-command `cd` won't save you — the session cwd is still the deleted dir. Delete the branch here; hand worktree teardown to a main-repo session or the human. |
 =======
