@@ -216,8 +216,12 @@ pending, or missing — or if no review ran — do **not** merge. Fix the failur
 push, let CI and the review re-run, and only merge once everything is green and
 approved.
 
-Then clean up the merged feature branch. **REQUIRED SUB-SKILL:** use
+After the forge confirms the PR is merged, remove the merged feature branch's
+worktree and clean up the branch. **REQUIRED SUB-SKILL:** use
 `finishing-a-development-branch` for the cleanup and any worktree teardown.
+The worktree must be removed after merge; if this session is inside it, hand
+removal to a main-repo session or the human instead of deleting the session's
+own cwd.
 
 **Never** do `git checkout main && git merge <branch> && git push`.
 
@@ -260,6 +264,7 @@ For the **worktree** itself:
 | Using vague or non-conventional commit messages | Classify every change, including miscellaneous work, with a defined type and use `<type>(<scope>): <imperative description>`. Use `chore` only when no more specific type fits. |
 | Committing / pushing / merging into the default branch | All work lands on the PR branch; merge the approved PR through the git host only. |
 | Skipping re-review after pushing fixes | The loop isn't done until the reviewer re-runs and approves. |
+| Leaving a merged worktree behind | Remove it after the forge confirms the merge. If this session runs inside it, hand removal to a main-repo session or the human. |
 | Removing the worktree this session runs inside | Don't. A per-command `cd` won't save you — the session cwd is still the deleted dir. Delete the branch here; hand worktree teardown to a main-repo session or the human. |
 
 ## Red Flags — STOP
