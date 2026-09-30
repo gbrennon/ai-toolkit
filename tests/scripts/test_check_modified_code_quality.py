@@ -14,7 +14,7 @@ def run_wrapper(
     checker_status: int = 0,
 ) -> subprocess.CompletedProcess[str]:
     bin_dir = tmp_path / "bin"
-    bin_dir.mkdir()
+    bin_dir.mkdir(exist_ok=True)
     checker = bin_dir / "check-code-quality"
     checker.write_text(
         "printf '%s\\n' \"$@\" > args.txt\n"
@@ -23,7 +23,15 @@ def run_wrapper(
         encoding="utf-8",
     )
     checker.chmod(0o755)
-    environment = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}"}
+    environment = {
+        **os.environ,
+        "PATH": f"{bin_dir}:{os.environ['PATH']}",
+        "AI_TOOLKIT_CIRCUIT_BREAKER_STATE": str(tmp_path / "breaker-state.json"),
+        "AI_TOOLKIT_CIRCUIT_BREAKER_THRESHOLD": "3",
+        "AI_TOOLKIT_CIRCUIT_BREAKER_COMMAND": str(
+            Path(__file__).parents[2] / "scripts" / "hook-circuit-breaker.py"
+        ),
+    }
     return subprocess.run(
         [str(WRAPPER)],
         cwd=tmp_path,
@@ -55,9 +63,24 @@ def test_failed_check_reports_violations_as_feedback(tmp_path: Path) -> None:
         checker_status=1,
     )
 
-    assert result.returncode == 2
-    assert "violation" in result.stderr
-    assert result.stdout == ""
+    assert result.returncode == 0
+    assert "violation" in result.stdout
+    assert result.stderr == ""
+
+
+def test_failed_check_opens_circuit_after_repeated_attempts(tmp_path: Path) -> None:
+    event = {"session_id": "session-1", "tool_input": {"path": "tests/app.py"}}
+
+    first = run_wrapper(event, tmp_path, checker_status=1)
+    second = run_wrapper(event, tmp_path, checker_status=1)
+    terminal = run_wrapper(event, tmp_path, checker_status=1)
+
+    assert first.returncode == 0
+    assert second.returncode == 0
+    assert terminal.returncode == 0
+    assert "circuit_breaker_open" in terminal.stdout
+    assert '"continue": false' in terminal.stdout
+    assert terminal.stderr == ""
 
 
 def test_missing_path_skips_quality_check(tmp_path: Path) -> None:

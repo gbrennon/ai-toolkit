@@ -44,31 +44,36 @@ find_source_rules() {
   fi
 }
 
+has_semgrep_rules() {
+  local directory="$1"
+
+  [[ -d "$directory" ]] &&
+    find "$directory" -type f -name '*.yml' -print -quit -o -type f -name '*.yaml' -print -quit | grep -q .
+}
+
 resolve_semgrep_config() {
   local configured="$1"
   local target="$2"
-  local global_rules_dir="$3"
-  local repo_rules_dir="$4"
+  local workspace_dir="$3"
+  local global_rules_dir="$4"
+  local repo_rules_dir="$5"
+  local candidate
 
   if [[ -n "$configured" ]]; then
     echo "$configured"
     return
   fi
 
-  if [[ -d "$target/.semgrep" ]] && compgen -G "$target/.semgrep/*.yml" > /dev/null; then
-    echo "$target/.semgrep"
-    return
-  fi
-
-  if [[ -d "$global_rules_dir" ]] && compgen -G "$global_rules_dir/*.yml" > /dev/null; then
-    echo "$global_rules_dir"
-    return
-  fi
-
-  if [[ -d "$repo_rules_dir" ]] && compgen -G "$repo_rules_dir/*.yml" > /dev/null; then
-    echo "$repo_rules_dir"
-    return
-  fi
+  for candidate in \
+    "$target/.semgrep" \
+    "$workspace_dir/.semgrep" \
+    "$global_rules_dir" \
+    "$repo_rules_dir"; do
+    if has_semgrep_rules "$candidate"; then
+      echo "$candidate"
+      return
+    fi
+  done
 
   echo ""
 }
@@ -103,6 +108,7 @@ main() {
   local only_semgrep=false
   local init_mode=false
   local target=""
+  local workspace_dir
   local source_rules
   local dest_dir
   local resolved_config
@@ -182,6 +188,7 @@ main() {
   done
 
   target="${target:-.}"
+  workspace_dir="$PWD"
 
   if [[ "$init_mode" == true ]]; then
     source_rules="$(find_source_rules "$global_rules_dir" "$repo_rules_dir")"
@@ -220,10 +227,11 @@ main() {
 
   if [[ "$only_lizard" == false ]]; then
     check_semgrep
-    resolved_config="$(resolve_semgrep_config "$semgrep_config" "$target" "$global_rules_dir" "$repo_rules_dir")"
+    resolved_config="$(resolve_semgrep_config "$semgrep_config" "$target" "$workspace_dir" "$global_rules_dir" "$repo_rules_dir")"
     if [[ -z "$resolved_config" ]]; then
       echo "Error: No Semgrep configuration found. Checked:" >&2
       echo "  - $target/.semgrep" >&2
+      echo "  - $workspace_dir/.semgrep" >&2
       echo "  - $global_rules_dir" >&2
       echo "  - $repo_rules_dir" >&2
       echo "Run with --init or specify --semgrep-config <path>" >&2

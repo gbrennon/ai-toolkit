@@ -83,6 +83,7 @@ FORGE_PATTERNS: dict[str, list[re.Pattern]] = {
     "bitbucket": [re.compile(r"bitbucket\.", re.I)],
     "codeberg": [re.compile(r"codeberg\.", re.I)],
     "gitea": [re.compile(r"gitea\.", re.I)],
+    "forgejo": [re.compile(r"forgejo\.", re.I)],
 }
 
 

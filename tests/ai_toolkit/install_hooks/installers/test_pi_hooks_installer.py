@@ -10,20 +10,30 @@ from ai_toolkit.install_hooks.installers.pi_hooks_installer import (
     HOOK_PACKAGE,
     NOTIFICATION_CMD,
     PiHooksInstaller,
+    install_hooks,
 )
 
 pytestmark = pytest.mark.integration
 
 
-def _expected_write_edit_conditions() -> set[str]:
+def _expected_tool_conditions() -> set[str]:
     return {
         f"{tool}(*.{ext})"
-        for tool in ("Write", "Edit")
+        for tool in ("Write", "Edit", "Read")
         for ext in CODE_EXTENSIONS
     }
 
 
 class TestPiHooksInstaller:
+    def test_install_hooks_copies_hook_from_package_path(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+
+        assert install_hooks() is True
+
+        installed_hook = tmp_path / ".hooks" / "pr_opened_hook.py"
+        assert installed_hook.is_file()
+        assert "class PROpenedHook" in installed_hook.read_text(encoding="utf-8")
+
     def test_install_writes_hook_and_package_to_new_file(self, tmp_path):
         target = tmp_path / "settings.json"
 
@@ -36,7 +46,7 @@ class TestPiHooksInstaller:
         assert groups[0]["matcher"] == HOOK_MATCHER
         hooks = groups[0]["hooks"]
         conditions = {hook["if"] for hook in hooks}
-        assert conditions == _expected_write_edit_conditions()
+        assert conditions == _expected_tool_conditions()
         assert all(
             hook["type"] == "command"
             and hook["command"] == "check-modified-code-quality"

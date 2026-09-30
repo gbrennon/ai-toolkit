@@ -25,5 +25,6 @@ class TestOpenCodeHooksInstaller:
         content = target.read_text(encoding="utf-8")
         assert '"tool.execute.after"' in content
         assert '"check-code-quality"' in content
+        assert '"ai-toolkit-hook-circuit-breaker"' in content
         assert '"py"' in content
         assert '"md"' not in content
