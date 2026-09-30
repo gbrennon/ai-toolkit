@@ -1,23 +1,17 @@
 ---
 name: repo-maintenance
-description: Use when contributing to or maintaining a repo by iterating over open PRs — a task is done, its PR is open, and an automated reviewer posts findings, suggestions, and an approve/request-changes verdict. Guides deciding what to fix now versus defer to a future issue by task scope, then merging the approved PR through the git host. Never pushes or merges into the default branch.
+description: Use when autonomously contributing to or maintaining a repository through its pull-request review loop, including creating the branch, pushing work, opening a PR, reasoning about review feedback, and deciding what to fix, issue, or dismiss. Never pushes or merges into the default branch.
 ---
 
 # Repo Maintenance
 
 ## Overview
 
-This skill should be used for virtually all repository maintenance tasks unless explicitly instructed otherwise. When a task is done you open a PR — that is the entry point where the loop starts. From there an auto-reviewer posts **findings**, **suggestions**, and a verdict (**Approve** or **Request changes**). You act on that feedback and re-loop until the PR is approved, then merge it through the git host.
+This skill should be used for virtually all repository maintenance tasks unless explicitly instructed otherwise. It is an **autonomous** workflow: do not pause for user confirmation before routine branch creation, commits, pushes, opening a PR, or posting the review commands defined below. Continue the loop until the PR is approved and its merge and CI preconditions are satisfied.
 
-**Core principle:** Blocking feedback is fixed on the PR branch; non-blocking suggestions are triaged by *task scope* — in-scope cheap suggestions get applied now, out-of-scope suggestions get deferred to issues via the reviewer's `create issue` command. Scope, not convenience, decides.
+When a task is complete, ensure there is an open PR. If none exists, create the feature branch, commit the work, push it, and open the PR against the default branch. From there an auto-reviewer posts **findings**, **suggestions**, and a verdict (**Approve** or **Request changes**). Read the complete review, reason about every item, act on the justified decisions, and re-loop until approved.
 
-**Intelligent Issue Handling:** The system automatically detects when new issues are created during maintenance and evaluates their importance based on:
-- Criticality of the suggestion (security, correctness, performance)
-- Relevance to current development focus
-- Potential impact on code quality and maintainability
-- Urgency of implementation
-
-If an important issue is detected, the system will automatically jump to address it before continuing with the original workflow.
+**Core principle:** Blocking feedback is fixed on the PR branch. Suggestions are not commands to change code: decide whether each is valuable, correct, repository-relevant, and within the explicit PR scope. Apply justified in-scope work, create issues for worthwhile deferred work, and dismiss only suggestions that genuinely do not make sense for this repository. Scope and engineering judgment—not convenience or approval-seeking—decide.
 
 **Default behavior:** This skill is enabled by default for all repository maintenance tasks. It should only be bypassed when explicitly instructed by the user.
 
@@ -82,7 +76,7 @@ cannot triage suggestions without it.
 
 ## Step 1 — Reach the loop entry: an open PR
 
-The loop begins the moment a task is done and its PR is open. To get there:
+The loop begins with an open PR. If no PR exists, perform these steps autonomously. Do not pause for user confirmation before routine maintenance actions:
 
 - Work on a **feature branch**, never the default branch. Create it with the correct
   prefix. **REQUIRED SUB-SKILL:** use `conventional-branch`.
@@ -90,9 +84,20 @@ The loop begins the moment a task is done and its PR is open. To get there:
   (**REQUIRED SUB-SKILL:** `test-driven-development` / `bug-fix-tdd`).
 - Commit per file with Conventional Commits. **REQUIRED SUB-SKILL:** use `conventional-commit`.
 - Verify before claiming done. **REQUIRED SUB-SKILL:** use `verification-before-completion`.
-- Push the **feature branch** and open the PR against the default branch. Write a PR body
-  that states the **scope** explicitly (link the originating issue). That scope statement
-  is what you and the reviewer measure every suggestion against.
+- Push the **feature branch** and open the PR against the default branch.
+
+The PR description must be expressive enough to establish the decision boundary for review. Include:
+
+1. **Motivation / context** and the originating issue, ticket, or request.
+2. **Scope** — what this PR is changing and why it belongs together.
+3. **Changes** — the meaningful implementation details.
+4. **Validation** — tests, checks, and manual verification performed.
+5. **Out of scope / follow-ups** — related work intentionally not included.
+6. **Review notes** — risks, compatibility considerations, and focus areas.
+
+Use the linked Codeberg PR style as a quality bar for a clear, narrative description:
+`https://codeberg.org/gbrennon/ephact/pulls/234`.
+The scope statement is the boundary used to evaluate every later suggestion.
 
 If a PR is already open (yours or one you are maintaining), skip straight to Step 2 and
 iterate on it.
@@ -128,10 +133,16 @@ goal expansion, or a broad refactor the task never asked for.
 | Finding on code you didn't touch | No | No | Defer to an issue; note it in the PR. |
 | Suggestion — cheap & in scope | No | Yes | Apply in this PR. |
 | Suggestion — large/risky but in scope | No | Yes | Defer to an issue with rationale; keep PR focused. |
-| Suggestion — out of scope | No | No | Defer to an issue via `create issue`. |
+| Suggestion — out of scope but valuable | No | No | Defer to an issue via `create issue`; explain why it is worthwhile and out of scope. |
+| Suggestion — incorrect, harmful, duplicate, or irrelevant | No | No | Dismiss via `dismiss`; record a concise technical rationale. |
+
+Before choosing an action, reason from the full review and repository context: inspect the
+changed code, understand the suggestion's intended benefit, compare it with the PR scope,
+and consider correctness, security, maintainability, duplication, and likely cost.
 
 Rule of thumb: **a suggestion never expands the PR's scope.** If applying it would grow
-the diff beyond the task, it becomes a future issue rather than an immediate change.
+the diff beyond the task, it becomes a future issue rather than an immediate change. Out
+of scope does not by itself justify dismissal: valuable out-of-scope work gets an issue.
 
 ## Step 4 — Defer suggestions to issues
 
@@ -140,14 +151,23 @@ the reviewer's issue-creation command by commenting on the PR. Batch all deferre
 into **one** comment:
 
 ```
-create issue <suggestion_id_1> , <suggestion_id_2> , <suggestion_id_3>
+create issue <suggestion-id-prefix-1> , <suggestion-id-prefix-2>
 ```
 
-- Include exactly the ids you are deferring — one command, ids separated by ` , ` (a
-  space on each side of the comma), however many suggestions there are.
-- Do **not** list a suggestion here that you are applying in this PR.
-- After the reviewer opens the issues, the deferral is done; the suggestion is no longer
-  your concern for this PR.
+The command accepts unique prefixes of suggestion IDs. Include only suggestions being
+ deferred, and provide a short rationale in the surrounding comment when useful. **Do not create an issue for every suggestion**: create one only when the proposed work has real
+ value to this repository but is outside this PR's scope or too large/risky to include.
+
+For a suggestion that is wrong, harmful, duplicated, not applicable to this repository,
+or otherwise genuinely nonsensical, comment:
+
+```
+dismiss <suggestion-id-prefix-1> , <suggestion-id-prefix-2>
+```
+
+`dismiss` also accepts unique ID prefixes. Give a concise reason for each dismissal. **Do not dismiss a suggestion merely because it is out of scope**; valuable out-of-scope work
+ must use `create issue`. Resolve prefixes against the IDs in the review and never guess
+ when a prefix is ambiguous.
 
 If your forge's reviewer does not support that command, create the issues directly and
 reference them back in the PR:
@@ -162,7 +182,10 @@ For breaking a larger deferred suggestion into proper vertical slices, use `to-i
 
 - Apply blocking fixes and in-scope suggestions. Commit them per file (`conventional-commit`).
 - Push **to the PR branch** (never the default branch). This retriggers the auto-review.
-- Go back to **Step 2**. Repeat until the verdict is **Approve**.
+- If CI/CD is configured, wait for all checks and workflows for the PR head to reach a
+  terminal state before treating the iteration as complete. Pending work is not green;
+  inspect failures and fix or rerun them according to the forge's rules.
+- Go back to **Step 2**. Repeat until the verdict is **Approve** and required CI/CD is green.
 
 Each loop should shrink the finding list. If new findings appear on code you just touched,
 they are in scope — fix them.
@@ -238,7 +261,10 @@ git push origin --delete <branch> # remote, after worktree cleanup
 | Applying every suggestion to make the reviewer happy | Suggestions are non-blocking. Triage by scope, not by approval-seeking. |
 | Letting a suggestion balloon the PR scope | Defer it to an issue. Keep the PR to its stated goal. |
 | Silently ignoring out-of-scope suggestions | Every deferred item gets an issue. "Defer" ≠ "drop." |
-| One `create issue` comment per suggestion | Batch all deferred ids into a single command, separated by ` , `. |
+| One `create issue` comment per suggestion | Batch all deferred prefixes into a single command, separated by ` , `. |
+| Dismissing all out-of-scope suggestions | Out of scope means issue when valuable, not automatic dismissal. |
+| Treating pending CI/CD as success | Wait for configured checks and workflows to finish; fix failures before merging. |
+| Asking permission before routine maintenance actions | This workflow is autonomous; act while honoring the hard safety guardrails. |
 | Blindly implementing a finding that's wrong | Verify with `verify-pr-feedback`; push back with `receiving-code-review`. |
 | Merging with unresolved requested changes | Blocking items must be fixed before finishing. |
 | Merging with red or pending CI | All checks/workflows/actions must be green first. Verify with the selected `$FORGE_CLI` or its supported API adapter. |
