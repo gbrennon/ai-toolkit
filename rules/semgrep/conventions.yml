@@ -56,3 +56,16 @@ rules:
     severity: ERROR
     patterns:
       - pattern-regex: '(?m)^\s*#!?\[allow\([^)]+\)\]'
+
+  - id: python-no-private-member-access
+    languages:
+      - python
+    message: "Do not access _-prefixed private members of another object; expose behavior via a public method"
+    severity: ERROR
+    patterns:
+      - pattern: $OBJ.$ATTR
+      - metavariable-regex:
+          metavariable: $ATTR
+          regex: "^_[^_]"
+      - pattern-not: self.$ATTR
+      - pattern-not: cls.$ATTR
