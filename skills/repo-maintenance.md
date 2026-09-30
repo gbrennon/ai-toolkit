@@ -27,6 +27,10 @@ convenience, decides.
 - **Never merge a PR whose CI/workflows/actions are not all green.** If any check
   failed, is pending, or is missing, merging is forbidden — fix it and let the
   checks re-run first.
+- **Use Conventional Commits for every commit.** Use the form
+  `<type>(<scope>): <imperative description>`, such as `fix(parser): reject empty
+  input`. Keep commits focused and do not use vague messages such as `changes`
+  or `fix stuff`.
 - **Never commit unrelated agent-session artifacts.** Runtime state, session
   files, temporary worktree contents, credentials, and generated scaffolding
   must not enter the PR accidentally. Agent tooling that is the repository's
@@ -233,6 +237,7 @@ For the **worktree** itself:
 | Merging with unresolved requested changes | Blocking items must be fixed before finishing. |
 | Merging with red or pending CI | All checks/workflows/actions must be green first. Verify with `gh pr checks` / `glab ci status` / `tea pulls`. |
 | Merging a PR that was never reviewed | A review must run and return **Approve** this turn before any merge. |
+| Using vague or non-conventional commit messages | Use `<type>(<scope>): <imperative description>` and keep each commit focused. |
 | Committing / pushing / merging into the default branch | All work lands on the PR branch; merge the approved PR through the git host only. |
 | Skipping re-review after pushing fixes | The loop isn't done until the reviewer re-runs and approves. |
 | Removing the worktree this session runs inside | Don't. A per-command `cd` won't save you — the session cwd is still the deleted dir. Delete the branch here; hand worktree teardown to a main-repo session or the human. |
@@ -248,6 +253,8 @@ For the **worktree** itself:
 - "No review ran but it looks good, I'll merge" → never merge an unreviewed PR.
 - "I'll `git add -A` to be safe" → no. That can sweep in unrelated session state,
   credentials, or temporary worktree files. Stage explicit paths only.
+- "I'll call the commit `changes`" → no. Use a focused Conventional Commit with
+  a meaningful type, optional scope, and imperative description.
 - "This generated session artifact belongs in the PR" → verify it is part of the
   repository's product and the PR scope. Project-owned skills and installers are
   valid; accidental runtime state is not.
