@@ -61,7 +61,11 @@ This approach reduces token usage significantly while still providing all necess
 - **Never merge a PR whose CI/workflows/actions are not all green.** If any check
   failed, is pending, or is missing, merging is forbidden — fix it and let the
   checks re-run first.
-- **Never commit agent/tooling artifacts.** Skills and agent scaffolding ("superpowers", `.pi/`, `.claude/`, `.agents/`, `.worktrees/` internals, session placeholders, and `AGENTS.md`/`CLAUDE.md` you didn't author for this repo) are **never** committed. Only commit changes that belong to the PR's goal; `git add -A` blindly is forbidden — stage explicit paths and review `git status` first.
+- **Never ignore a finding on a modified file.** If a hook, test, linter,
+  formatter, type checker, static analyzer, or other quality tool flags a file
+  changed by the PR, investigate and resolve it before finishing. Do not hide,
+  suppress, skip, or dismiss the finding without evidence and an explicit scope
+  decision.
 
 **Announce at start:** "I'm using the repo-maintenance skill to iterate this PR through review."
 
@@ -322,6 +326,7 @@ git push origin --delete <branch> # remote, after worktree cleanup
 | Blindly implementing a finding that's wrong | Verify with `verify-pr-feedback`; push back with `receiving-code-review`. |
 | Merging with unresolved requested changes | Blocking items must be fixed before finishing. |
 | Merging with red or pending CI | All checks/workflows/actions must be green first. Verify with the selected `$FORGE_CLI` or its supported API adapter. |
+| Ignoring a tool finding on a modified file | Investigate and resolve findings from hooks, tests, linters, formatters, type checkers, and analyzers before finishing. Never suppress or skip them silently. |
 | Merging a PR that was never reviewed | A review must run and return **Approve** this turn before any merge. |
 | Using vague or non-conventional commit messages | Classify every change, including miscellaneous work, with a defined type and use `<type>(<scope>): <imperative description>`. Use `chore` only when no more specific type fits. |
 | Committing / pushing / merging into the default branch | All work lands on the PR branch; merge the approved PR through the git host only. |
@@ -341,6 +346,7 @@ git push origin --delete <branch> # remote, after worktree cleanup
 - "I'll just push this straight to main" / "I'll merge the branch into main locally" → never. Work on the PR branch; merge approved PRs through the git host.
 - "I fixed things locally, PR is basically approved" → not until the auto-review re-runs and approves.
 - "CI is probably fine, I'll merge" → confirm every check is green first; merging failing or pending work is forbidden.
+- "That hook/lint/test finding is unrelated, I'll ignore it" → not on a modified file. Investigate and resolve it, or document an evidence-based scope decision before continuing.
 - "No review ran but it looks good, I'll merge" → never merge an unreviewed PR.
 <<<<<<< HEAD
 - "I'll `git add -A` to be safe" → no. That can sweep in unrelated session state,
