@@ -73,4 +73,4 @@ def test_skill_source_has_no_merge_conflict_markers():
 
 
 def test_skill_merge_command_deletes_merged_branch():
-    assert "$FORGE_CLI pr merge <number> --squash --delete" in SKILL
+    assert "$FORGE_CLI pr merge <number> --delete" in SKILL

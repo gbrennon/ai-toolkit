@@ -252,7 +252,7 @@ never with a local merge into the default branch:
 
 ```bash
 # Use the command/API adapter selected from the current repository remote.
-$FORGE_CLI pr merge <number> --squash --delete
+$FORGE_CLI pr merge <number> --delete
 ```
 
 For hosts whose supported merge API differs from the selected CLI, use the corresponding
