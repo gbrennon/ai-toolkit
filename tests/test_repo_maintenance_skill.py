@@ -22,3 +22,28 @@ def test_skill_tracks_post_merge_ci_and_retries_once():
     assert "rerun" in SKILL
     assert "once" in SKILL
     assert "fails again" in SKILL
+
+
+def test_skill_autonomously_pushes_and_opens_missing_pr():
+    assert "autonomous" in SKILL
+    assert "If no PR exists" in SKILL
+    assert "push" in SKILL
+    assert "open the PR" in SKILL
+    assert "Do not pause for user confirmation" in SKILL
+
+
+def test_skill_requires_expressive_pr_scope_description():
+    assert "expressive" in SKILL
+    assert "Motivation" in SKILL
+    assert "Changes" in SKILL
+    assert "Validation" in SKILL
+    assert "Out of scope" in SKILL
+
+
+def test_skill_defines_reasoned_review_commands():
+    assert "create issue <suggestion-id-prefix" in SKILL
+    assert "dismiss <suggestion-id-prefix" in SKILL
+    assert "prefix" in SKILL
+    assert "Do not create an issue for every suggestion" in SKILL
+    assert "Do not dismiss a suggestion merely because it is out of scope" in SKILL
+    assert "reason" in SKILL.lower()
