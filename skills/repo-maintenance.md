@@ -32,7 +32,9 @@ convenience, decides.
   preparation, and `chore/<description>` for non-code or non-feature work such
   as dependency or documentation updates. Examples: `feature/add-login-page`,
   `feat/add-login-page`, `release/v1.2.0`, `chore/update-dependencies`.
-- **Use Conventional Commits for every commit.** Use the form
+- **Use Conventional Commits for every commit, without exception.** This
+  includes code, API/UI changes, docs, tests, configuration, dependencies,
+  build files, operations, and miscellaneous repository work. Use the form
   `<type>(<scope>): <imperative description>`. Allowed types and meanings:
   - `feat`: Add, adjust, or remove an API or UI feature.
   - `fix`: Fix an API or UI bug from a preceding `feat` commit.
@@ -45,9 +47,9 @@ convenience, decides.
   - `ops`: Change infrastructure, deployment, CI/CD, backups, monitoring, or
     recovery procedures.
   - `chore`: Perform repository tasks such as the initial commit or changing
-    `.gitignore`.
-- Keep commits focused and do not use vague messages such as `changes` or
-  `fix stuff`.
+    `.gitignore`; use it for other work that does not fit a more specific type.
+- Every change must fit one of these types. Keep commits focused and do not use
+  vague messages such as `changes` or `fix stuff`.
 - **Never commit unrelated agent-session artifacts.** Runtime state, session
   files, temporary worktree contents, credentials, and generated scaffolding
   must not enter the PR accidentally. Agent tooling that is the repository's
@@ -255,7 +257,7 @@ For the **worktree** itself:
 | Merging with unresolved requested changes | Blocking items must be fixed before finishing. |
 | Merging with red or pending CI | All checks/workflows/actions must be green first. Verify with `gh pr checks` / `glab ci status` / `tea pulls`. |
 | Merging a PR that was never reviewed | A review must run and return **Approve** this turn before any merge. |
-| Using vague or non-conventional commit messages | Use one of the defined Conventional Commit types with `<type>(<scope>): <imperative description>`, and keep each commit focused. |
+| Using vague or non-conventional commit messages | Classify every change, including miscellaneous work, with a defined type and use `<type>(<scope>): <imperative description>`. Use `chore` only when no more specific type fits. |
 | Committing / pushing / merging into the default branch | All work lands on the PR branch; merge the approved PR through the git host only. |
 | Skipping re-review after pushing fixes | The loop isn't done until the reviewer re-runs and approves. |
 | Removing the worktree this session runs inside | Don't. A per-command `cd` won't save you — the session cwd is still the deleted dir. Delete the branch here; hand worktree teardown to a main-repo session or the human. |
