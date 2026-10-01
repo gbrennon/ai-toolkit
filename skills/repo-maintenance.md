@@ -120,7 +120,25 @@ The loop begins with an open PR. If no PR exists, perform these steps autonomous
 - Commit per file using the Conventional Commit types and meanings defined in
   the hard guardrails.
 - Verify before claiming done. **REQUIRED SUB-SKILL:** use `verification-before-completion`.
-- Push the **feature branch** and open the PR against the default branch.
+- **Confirm the worktree and branch are in sync with the default branch before pushing or
+  opening the PR.** The working tree must be clean, and the PR branch must contain the
+  latest default-branch commits:
+  ```bash
+  git status --porcelain            # MUST be empty before synchronization
+  git fetch origin
+  DEFAULT_BRANCH="$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || printf 'origin/main')"
+  git merge-base --is-ancestor "$DEFAULT_BRANCH" HEAD || git rebase "$DEFAULT_BRANCH"
+  git status --porcelain            # MUST still be empty after rebase
+  git log --oneline "$DEFAULT_BRANCH"..HEAD   # sanity: only this PR's commits
+  git branch --show-current
+  git worktree list
+  ```
+  If the rebase produces conflicts, resolve them, re-run the relevant tests, and repeat
+  this gate. Confirm that `git branch --show-current` is the PR branch and `git worktree
+  list` shows this worktree checked out on that branch; never push from a detached or wrong
+  worktree. Do not open the PR until all checks above pass.
+
+- **Push the feature branch** and open the PR against the default branch.
 
 The PR description must be expressive enough to establish the decision boundary for review. Include:
 
@@ -234,7 +252,7 @@ never with a local merge into the default branch:
 
 ```bash
 # Use the command/API adapter selected from the current repository remote.
-$FORGE_CLI pr merge <number> --squash
+$FORGE_CLI pr merge <number> --delete
 ```
 
 For hosts whose supported merge API differs from the selected CLI, use the corresponding
