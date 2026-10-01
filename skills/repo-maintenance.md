@@ -109,16 +109,38 @@ Know the **task scope** before you start: the originating issue, spec, or ticket
 there is no written scope, state in one sentence what this PR is and is not about. You
 cannot triage suggestions without it.
 
+Work can enter the loop from a **tracker item** (issue, ticket, or task) as well as
+from a direct request. When picking up tracker work, read the item's full body and
+comment thread first — the acceptance criteria and discussion are the scope. A
+vague item is handled autonomously, not by pausing: brainstorm the possible
+readings, record the ambiguity and your chosen interpretation in the PR
+description, infer the most bounded reading from the code and discussion
+context, and proceed when that reading is safe to ship. Only stop when every
+reading materially changes the work and the choice cannot be made safely —
+then report the blocker on the tracker item rather than waiting silently.
+Reference the item number in the PR description and close it via the
+forge (e.g. `Fixes #N`) so the tracker stays authoritative. `create issue` output
+from reviewer commands feeds this same entry: a freshly created issue is a new
+loop entry, not a dead end.
+
 ## Step 1 — Reach the loop entry: an open PR
 
 The loop begins with an open PR. If no PR exists, perform these steps autonomously. Do not pause for user confirmation before routine maintenance actions:
 
 - Work on a **feature branch**, never the default branch. Create it with the
   conventional branch prefixes defined in the hard guardrails.
+- **Size the work before coding.** If the task is more than a trivial fix:
+  - **Brainstorm the intent first.** **REQUIRED SUB-SKILL:** `brainstorming` —
+    explore requirements and alternatives before committing to an approach;
+    for refactors, confirm the target design against the current code before
+    planning.
+  - **Design before implementing a refactor.** For anything restructuring
+    modules, contracts, or layers, **REQUIRED SUB-SKILL:** use
+    `codebase-design` / `request-refactor-plan` to produce the target design
+    and an incremental, independently-verifiable commit sequence — then
+    implement that plan. A refactor without a written plan drifts.
 - Implement the change. Write tests first where the work is a feature or bugfix
   (**REQUIRED SUB-SKILL:** `test-driven-development` / `bug-fix-tdd`).
-- Commit per file using the Conventional Commit types and meanings defined in
-  the hard guardrails.
 - Verify before claiming done. **REQUIRED SUB-SKILL:** use `verification-before-completion`.
 - **Confirm the worktree and branch are in sync with the default branch before pushing or
   opening the PR.** The working tree must be clean, and the PR branch must contain the
@@ -166,8 +188,23 @@ When the auto-reviewer finishes, fetch its output rather than eyeballing the web
 uv run fetch-pr-review <PR-URL | owner/repo/number>
 ```
 
-Read the whole review: the verdict, every **finding**, and every **suggestion** with its
-id. Do not react yet — triage first.
+If `fetch-pr-review` is not available in the repo, read the forge's **reviews
+endpoint** directly (`/repos/{owner}/{repo}/pulls/{number}/reviews`). The
+verdict and every suggestion live there — PR comments are a different resource,
+and a PR view reporting "0 comments" says nothing about reviews: an APPROVED
+review with suggestions coexists with zero comments.
+
+Read the whole review: the verdict, every **finding**, and every **suggestion**
+with its id. **An Approve verdict does not mean "no suggestions"** — triage
+them like any other. Do not react yet — triage first.
+
+The reviewer (pr-auto-reviewer) **polls** for open PRs and new pushes, so a
+review typically appears within roughly 2–3 minutes — but the delay is
+unbounded when it is mid-loop on another review, and it never posts PR
+comments. Poll the reviews endpoint on a cadence (e.g. every 30–60 s) for at
+least 10 minutes before drawing any conclusion. One early probe finding no
+review is not evidence the reviewer is unconfigured, and the reviews endpoint
+answers everything you might otherwise ask the human.
 
 If any finding's correctness is in doubt, **REQUIRED SUB-SKILL:** use `verify-pr-feedback`
 to classify it real / wrong / partial before acting. Do not blindly implement.
@@ -230,6 +267,17 @@ reference them back in the PR:
 uv run forge-issue create <owner/repo> "<title>" --label <role>   # body from stdin
 ```
 
+The reviewer processes these commands asynchronously through the same polling
+loop — typically a few minutes (observed ~2–3), longer when it is mid-loop on
+another review. After posting, verify the outcome before declaring the loop
+done: re-check the issues list and the PR comments until the `create issue`
+command has produced its tracking issue (record its number) and the `dismiss`
+is reflected. Poll on a cadence and allow at least 15 minutes; if still
+nothing, fall back to creating the issue directly (below) so no deferred
+suggestion is left untracked — and say so in the PR comment so a later bot
+action doesn't duplicate it.
+
+
 For breaking a larger deferred suggestion into proper vertical slices, use `to-issues`.
 
 ## Step 5 — Fix, push, re-loop
@@ -269,8 +317,15 @@ successful retry as the workflow's final outcome.
 
 Merge preconditions — **all** required, no exceptions:
 1. A review actually ran this turn and its verdict is **Approve** (never merge an
-   unreviewed PR, and never merge over a blocker or requested change).
-2. Every CI check / workflow / action on the PR head is **green**. Confirm it
+   unreviewed PR, and never merge over a blocker or requested change). An
+   approved review counts only after you have fetched it and verified it is
+   fresh — it reviews the current head commit.
+2. **Every suggestion in the review is triaged before merging.** Verdict
+   Approve + untriaged suggestions means the loop is not finished: apply the
+   in-scope ones, post `create issue`/`dismiss` for the rest, and only then
+   merge. Merging ahead of triage forces the reviewer commands onto a merged
+   PR where they may not be processed.
+3. Every CI check / workflow / action on the PR head is **green**. Confirm it
    explicitly — do not assume:
    ```bash
    # GitHub
@@ -280,7 +335,7 @@ Merge preconditions — **all** required, no exceptions:
    # Codeberg / Forgejo-compatible hosts
    $FORGE_CLI pulls <number> -o yaml      # inspect status/checks for the head commit
    ```
-3. Every deferred suggestion has a tracking issue.
+4. Every deferred suggestion has a tracking issue.
 
 **Merging failing or unverified work is forbidden.** If any check is failing,
 pending, or missing — or if no review ran — do **not** merge. Fix the failure,
@@ -340,6 +395,9 @@ git push origin --delete <branch> # remote, after worktree cleanup
 | Merging with red or pending CI | All checks/workflows/actions must be green first. Verify with the selected `$FORGE_CLI` or its supported API adapter. |
 | Ignoring a tool finding on a modified file | Investigate and resolve findings from hooks, tests, linters, formatters, type checkers, and analyzers before finishing. Never suppress or skip them silently. |
 | Merging a PR that was never reviewed | A review must run and return **Approve** this turn before any merge. |
+| Concluding "no reviewer configured" from one early probe | The reviewer polls open PRs; a review typically lands in ~2–3 min but can take longer when it is mid-loop elsewhere. Poll the reviews endpoint, not PR comments; "0 comments" ≠ no review. Never report a missing reviewer or ask the human what the reviews API answers. |
+| Merging an Approve while suggestions are untriaged | Triage every suggestion first; merge only after in-scope fixes land and `create issue`/`dismiss` commands are posted. |
+| Posting `create issue`/`dismiss` and walking away | The bot processes commands through its polling loop (typically minutes, unbounded mid-loop); verify the tracking issue exists (or fall back to creating it directly, noting the duplicate risk) before declaring the loop done. |
 | Using vague or non-conventional commit messages | Classify every change, including miscellaneous work, with a defined type and use `<type>(<scope>): <imperative description>`. Use `chore` only when no more specific type fits. |
 | Committing / pushing / merging into the default branch | All work lands on the PR branch; merge the approved PR through the git host only. |
 | Skipping re-review after pushing fixes | The loop isn't done until the reviewer re-runs and approves. |
@@ -353,9 +411,10 @@ git push origin --delete <branch> # remote, after worktree cleanup
 - "The reviewer requested changes but I think it's fine, I'll merge" → fix or push back with evidence; never merge over a blocker.
 - "I'll just push this straight to main" / "I'll merge the branch into main locally" → never. Work on the PR branch; merge approved PRs through the git host.
 - "I fixed things locally, PR is basically approved" → not until the auto-review re-runs and approves.
-- "CI is probably fine, I'll merge" → confirm every check is green first; merging failing or pending work is forbidden.
-- "That hook/lint/test finding is unrelated, I'll ignore it" → not on a modified file. Investigate and resolve it, or document an evidence-based scope decision before continuing.
+- "No review showed up in my first check, so no reviewer exists" → the reviewer polls open PRs: typically ~2–3 min, longer when mid-loop on another review. Poll the reviews endpoint on a cadence for at least 10 minutes; it never posts PR comments.
+- "Verdict is Approve, so the review had nothing actionable" → an Approve can still carry suggestions; triage them all before merging.
 - "No review ran but it looks good, I'll merge" → never merge an unreviewed PR.
+- "That hook/lint/test finding is unrelated, I'll ignore it" → not on a modified file. Investigate and resolve it, or document an evidence-based scope decision before continuing.
 - "I'll `git add -A` to be safe" → no. That can sweep in unrelated session state,
   credentials, or temporary worktree files. Stage explicit paths only.
 - "This skill / `.pi` / `AGENTS.md` change is handy, I'll commit it too" → never.
