@@ -23,6 +23,10 @@ class TestOmpHooksInstaller:
 
         assert installed is True
         content = target.read_text(encoding="utf-8")
+        assert (
+            'import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";'
+            in content
+        )
         assert 'pi.on("tool_result"' in content
         assert '"check-code-quality"' in content
         assert '"ai-toolkit-hook-circuit-breaker"' in content

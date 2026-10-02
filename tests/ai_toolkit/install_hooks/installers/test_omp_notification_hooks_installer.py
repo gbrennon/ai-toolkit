@@ -23,16 +23,29 @@ class TestOmpNotificationHooksInstaller:
 
         assert installed is True
         content = target.read_text(encoding="utf-8")
-        assert 'pi.on("turn_end"' in content
-        assert 'pi.on("tool_call"' in content
+        assert (
+            'import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";'
+            in content
+        )
+        assert 'pi.on("ui_prompt_start"' in content
+        assert 'pi.on("agent_start"' in content
+        assert 'pi.on("agent_end"' in content
+        assert 'pi.on("agent_settled"' in content
+        assert "event.messages" in content
+        assert "stopReason" in content
+        assert "isError" in content
         assert "hasUI" in content
-        assert "hasQueuedMessages" in content
-        assert "isIdle" in content
         assert "#{client_session}" in content
         assert "#{window_active}" in content
-        assert "task complete" in content
+        assert "#{window_index}" in content
+        assert "windowIndex" in content
+        assert "tmux ${state.sessionName}:${state.windowIndex}" in content
         assert "input needed" in content
+        assert "task complete" in content
+        assert "task failed" in content
         assert "notify-send" in content
+        assert 'pi.on("turn_end"' not in content
+        assert 'pi.on("tool_call"' not in content
 
     def test_install_is_deterministic(self, tmp_path: Path) -> None:
         target = tmp_path / "notify.ts"
