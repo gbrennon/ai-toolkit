@@ -5,7 +5,7 @@ from typing import Self
 OMP_HOOK_PATH: Path = (
     Path.home() / ".omp" / "agent" / "hooks" / "post" / "ai-toolkit-quality.ts"
 )
-OMP_HOOK_CONTENT: str = '''import type { HookAPI } from "@oh-my-pi/pi-coding-agent/extensibility/hooks";
+OMP_HOOK_CONTENT: str = """import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const CODE_EXTENSIONS: Set<string> = new Set([
   "py", "rs", "go", "ts", "tsx", "js", "jsx", "java", "kt", "swift",
@@ -40,7 +40,7 @@ async function runBreaker(
   return { code, stderr };
 }
 
-export default function qualityHook(pi: HookAPI): void {
+export default function qualityHook(pi: ExtensionAPI): void {
   pi.on("tool_result", async (event, ctx) => {
     if (event.isError) return;
     const toolName = event.toolName.toLowerCase();
@@ -86,7 +86,7 @@ export default function qualityHook(pi: HookAPI): void {
     };
   });
 }
-'''
+"""
 
 
 class OmpHooksInstaller:

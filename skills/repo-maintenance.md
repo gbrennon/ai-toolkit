@@ -97,13 +97,47 @@ Select the forge CLI once from the current repository remote before any forge op
 including post-merge status and rerun commands:
 
 ```bash
-FORGE_CLI="$(uv run forge-detect --cli)"
+if command -v forge-detect >/dev/null 2>&1; then
+  FORGE_CLI="$(forge-detect --cli)"
+else
+  REMOTE_NAME="${REMOTE:-$(git config --get "branch.$(git branch --show-current).remote" 2>/dev/null || git remote | { IFS= read -r first; printf '%s' "$first"; })}"
+  REMOTE_URL="$(git remote get-url "$REMOTE_NAME")"
+  case "$REMOTE_URL" in
+    *github.com*) FORGE_CLI=gh ;;
+    *codeberg.org*|*forgejo*|*gitea*) FORGE_CLI=fj ;;
+    *)
+      printf 'Cannot select a forge CLI for remote: %s\n' "$REMOTE_URL" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+command -v "$FORGE_CLI" >/dev/null 2>&1 || {
+  printf '%s is required for this repository remote\n' "$FORGE_CLI" >&2
+  exit 1
+}
 ```
 
+Use the installed resolver when available. Do **not** run `uv run forge-detect` in a
+different repository: `uv run` resolves commands from that repository's environment and
+may not contain this project. The fallback selects `gh` for GitHub and `fj` for
+Forgejo-family or Codeberg hosts directly from the configured git remote, then verifies
+that the selected executable exists.
+
+Before any operation, inspect the selected CLI's installed command surface:
+
+```bash
+"$FORGE_CLI" --help
+"$FORGE_CLI" pr --help
+```
+
+Use only subcommands and flags shown by that help output, or use the selected forge's API
+adapter. Never substitute a command from another forge or assume that every CLI version
+supports a particular command or flag.
+
 The resolver selects `gh` for GitHub and `fj` for Forgejo-family or Codeberg hosts based
-on the remote. Use `$FORGE_CLI` (or the corresponding supported command/API adapter)
-for every merge, check, status, rerun, and API operation; do not assume a forge or
-hard-code a CLI.
+on the remote. Use `$FORGE_CLI` (or the corresponding supported API adapter) for every
+merge, check, status, rerun, and API operation; do not assume a forge or hard-code a CLI.
 
 Know the **task scope** before you start: the originating issue, spec, or ticket. If
 there is no written scope, state in one sentence what this PR is and is not about. You
@@ -298,13 +332,16 @@ they are in scope — fix them.
 Only when **all** merge preconditions below hold. Merge the PR **through the forge**,
 never with a local merge into the default branch:
 
+Before merging, inspect the selected CLI's supported pull-request commands:
+
 ```bash
-# Use the command/API adapter selected from the current repository remote.
-$FORGE_CLI pr merge <number> --delete
+"$FORGE_CLI" --help
+"$FORGE_CLI" pr --help
 ```
 
-For hosts whose supported merge API differs from the selected CLI, use the corresponding
-`$FORGE_CLI`-selected API adapter rather than assuming GitHub or hard-coding another CLI.
+Use whichever merge subcommand and branch-deletion flag those help outputs document, or
+use the selected forge's API adapter. Do not copy a merge command or branch-deletion flag
+from another forge or assume it is portable across CLI versions.
 
 ### Post-merge workflow tracking
 
@@ -326,15 +363,15 @@ Merge preconditions — **all** required, no exceptions:
    merge. Merging ahead of triage forces the reviewer commands onto a merged
    PR where they may not be processed.
 3. Every CI check / workflow / action on the PR head is **green**. Confirm it
-   explicitly — do not assume:
+   explicitly — do not assume. First inspect the selected CLI's supported pull-request
+   status commands:
    ```bash
-   # GitHub
-   gh pr checks <number>            # every check must be "pass"; no fail/pending
-   # GitLab
-   glab ci status                  # pipeline for the MR head must be "success"
-   # Codeberg / Forgejo-compatible hosts
-   $FORGE_CLI pulls <number> -o yaml      # inspect status/checks for the head commit
+   "$FORGE_CLI" --help
+   "$FORGE_CLI" pr --help
    ```
+   Use the status/check command documented by those help outputs, or the selected forge's
+   API adapter. Treat unsupported subcommands and version-specific flags as a blocked
+   operation, not as permission to substitute another forge CLI.
 4. Every deferred suggestion has a tracking issue.
 
 **Merging failing or unverified work is forbidden.** If any check is failing,
