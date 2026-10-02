@@ -4,7 +4,20 @@ from ai_toolkit.forge.cli import (
     ForgeCliUnavailable,
     forge_cli_for_remote,
     resolve_forge_cli,
+    resolve_forge_cli_from_remote,
 )
+
+
+def test_remote_fallback_resolves_codeberg_without_resolver_executable(monkeypatch):
+    monkeypatch.setattr("ai_toolkit.forge.cli.shutil.which", lambda name: "/bin/fj" if name == "fj" else None)
+
+    assert resolve_forge_cli_from_remote("ssh://git@codeberg.org/owner/repo.git") == "fj"
+
+
+def test_remote_fallback_resolves_github_with_gh(monkeypatch):
+    monkeypatch.setattr("ai_toolkit.forge.cli.shutil.which", lambda name: "/bin/gh" if name == "gh" else None)
+
+    assert resolve_forge_cli_from_remote("https://github.com/owner/repo.git") == "gh"
 
 
 def test_github_resolves_to_gh(monkeypatch):
