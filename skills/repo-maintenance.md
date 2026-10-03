@@ -345,12 +345,20 @@ from another forge or assume it is portable across CLI versions.
 
 ### Post-merge workflow tracking
 
-After merging, continue tracking the merged commit's CI/CD workflows until each reaches a
-terminal state. Use the selected `$FORGE_CLI` (or its supported API adapter) to poll
-workflow/check status for that merge commit. If a workflow fails, rerun that workflow
-once with the selected CLI and resume tracking it. If it fails again, report the
-persistent failure and stop retrying that workflow; do not silently ignore it. Record a
-successful retry as the workflow's final outcome.
+After merging, continue tracking the merged commit's CI/CD workflows until each
+reaches a terminal state. Use the selected `$FORGE_CLI` (or its supported API
+adapter) to poll workflow/check status for that merge commit. If an initial
+workflow attempt fails, the model MUST perform at least two additional rerun
+attempts for that same workflow and MUST wait for each attempt to reach a
+terminal state before evaluating it. If either required rerun succeeds, record
+that workflow's final outcome as successful and continue tracking all other
+workflows. If the initial attempt and both additional reruns fail, the model MUST
+inspect the available workflow status, logs, and failure details, investigate and
+record the likely reason, and create a follow-up tracker task/issue whose next
+task is to implement the fix. Persistent post-merge failure keeps the pipeline
+unhealthy: do not declare the maintenance loop complete, do not claim all
+workflows are green, and do not silently ignore the failure. Continue tracking
+independent workflows to terminal states.
 
 Merge preconditions — **all** required, no exceptions:
 1. A review actually ran this turn and its verdict is **Approve** (never merge an
@@ -426,6 +434,7 @@ git push origin --delete <branch> # remote, after worktree cleanup
 | One `create issue` comment per suggestion | Batch all deferred prefixes into a single command, separated by ` , `. |
 | Dismissing all out-of-scope suggestions | Out of scope means issue when valuable, not automatic dismissal. |
 | Treating pending CI/CD as success | Wait for configured checks and workflows to finish; fix failures before merging. |
+| Rerunning a failed post-merge workflow only once or stopping after reporting it | Perform two additional reruns, wait for each to reach a terminal state, investigate logs/status after both fail, create a follow-up fix task, and keep the pipeline marked failed. |
 | Asking permission before routine maintenance actions | This workflow is autonomous; act while honoring the hard safety guardrails. |
 | Blindly implementing a finding that's wrong | Verify with `verify-pr-feedback`; push back with `receiving-code-review`. |
 | Merging with unresolved requested changes | Blocking items must be fixed before finishing. |

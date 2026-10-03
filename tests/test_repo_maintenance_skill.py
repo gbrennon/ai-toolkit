@@ -17,12 +17,15 @@ def test_skill_requires_post_merge_worktree_cleanup():
     assert "current cwd" in SKILL
 
 
-def test_skill_tracks_post_merge_ci_and_retries_once():
+def test_skill_tracks_post_merge_ci_retries_and_investigates_persistent_failure():
     assert "After merging" in SKILL
     assert "terminal" in SKILL
     assert "rerun" in SKILL
-    assert "once" in SKILL
-    assert "fails again" in SKILL
+    assert "two additional" in SKILL
+    assert "logs" in SKILL
+    assert "investigate" in SKILL
+    assert "follow-up" in SKILL
+    assert "fix" in SKILL
 
 
 def test_skill_autonomously_pushes_and_opens_missing_pr():
