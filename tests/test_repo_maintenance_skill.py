@@ -17,12 +17,15 @@ def test_skill_requires_post_merge_worktree_cleanup():
     assert "current cwd" in SKILL
 
 
-def test_skill_tracks_post_merge_ci_and_retries_once():
+def test_skill_tracks_post_merge_ci_retries_and_investigates_persistent_failure():
     assert "After merging" in SKILL
     assert "terminal" in SKILL
     assert "rerun" in SKILL
-    assert "once" in SKILL
-    assert "fails again" in SKILL
+    assert "two additional" in SKILL
+    assert "logs" in SKILL
+    assert "investigate" in SKILL
+    assert "follow-up" in SKILL
+    assert "fix" in SKILL
 
 
 def test_skill_autonomously_pushes_and_opens_missing_pr():
@@ -72,5 +75,29 @@ def test_skill_source_has_no_merge_conflict_markers():
     assert ">>>>>>>" not in SKILL
 
 
-def test_skill_merge_command_deletes_merged_branch():
-    assert "$FORGE_CLI pr merge <number> --delete" in SKILL
+def test_skill_requires_help_driven_merge_commands():
+    assert '"$FORGE_CLI" --help' in SKILL
+    assert '"$FORGE_CLI" pr --help' in SKILL
+    assert "branch-deletion flag" in SKILL
+    assert "selected forge's API adapter" in SKILL
+    assert "$FORGE_CLI pr merge <number> --delete" not in SKILL
+
+
+def test_skill_falls_back_to_remote_based_cli_selection():
+    assert "command -v forge-detect" in SKILL
+    assert 'REMOTE_NAME="${REMOTE:-$(git config --get "branch.$(git branch --show-current).remote"' in SKILL
+    assert 'git remote | { IFS= read -r first; printf \'%s\' "$first"; }' in SKILL
+    assert "*github.com*) FORGE_CLI=gh" in SKILL
+    assert "*codeberg.org*|*forgejo*|*gitea*) FORGE_CLI=fj" in SKILL
+    assert 'command -v "$FORGE_CLI"' in SKILL
+    assert "uv run forge-detect --cli" not in SKILL
+
+
+def test_skill_requires_help_driven_cli_subcommands():
+    assert '"$FORGE_CLI" --help' in SKILL
+    assert '"$FORGE_CLI" pr --help' in SKILL
+    assert "supported API adapter" in SKILL
+    assert "version-specific flags" in SKILL
+    assert "gh pr checks <number>" not in SKILL
+    assert "glab ci status" not in SKILL
+    assert "$FORGE_CLI pulls <number>" not in SKILL

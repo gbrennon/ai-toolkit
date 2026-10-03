@@ -97,17 +97,65 @@ Select the forge CLI once from the current repository remote before any forge op
 including post-merge status and rerun commands:
 
 ```bash
-FORGE_CLI="$(uv run forge-detect --cli)"
+if command -v forge-detect >/dev/null 2>&1; then
+  FORGE_CLI="$(forge-detect --cli)"
+else
+  REMOTE_NAME="${REMOTE:-$(git config --get "branch.$(git branch --show-current).remote" 2>/dev/null || git remote | { IFS= read -r first; printf '%s' "$first"; })}"
+  REMOTE_URL="$(git remote get-url "$REMOTE_NAME")"
+  case "$REMOTE_URL" in
+    *github.com*) FORGE_CLI=gh ;;
+    *codeberg.org*|*forgejo*|*gitea*) FORGE_CLI=fj ;;
+    *)
+      printf 'Cannot select a forge CLI for remote: %s\n' "$REMOTE_URL" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+command -v "$FORGE_CLI" >/dev/null 2>&1 || {
+  printf '%s is required for this repository remote\n' "$FORGE_CLI" >&2
+  exit 1
+}
 ```
 
+Use the installed resolver when available. Do **not** run `uv run forge-detect` in a
+different repository: `uv run` resolves commands from that repository's environment and
+may not contain this project. The fallback selects `gh` for GitHub and `fj` for
+Forgejo-family or Codeberg hosts directly from the configured git remote, then verifies
+that the selected executable exists.
+
+Before any operation, inspect the selected CLI's installed command surface:
+
+```bash
+"$FORGE_CLI" --help
+"$FORGE_CLI" pr --help
+```
+
+Use only subcommands and flags shown by that help output, or use the selected forge's API
+adapter. Never substitute a command from another forge or assume that every CLI version
+supports a particular command or flag.
+
 The resolver selects `gh` for GitHub and `fj` for Forgejo-family or Codeberg hosts based
-on the remote. Use `$FORGE_CLI` (or the corresponding supported command/API adapter)
-for every merge, check, status, rerun, and API operation; do not assume a forge or
-hard-code a CLI.
+on the remote. Use `$FORGE_CLI` (or the corresponding supported API adapter) for every
+merge, check, status, rerun, and API operation; do not assume a forge or hard-code a CLI.
 
 Know the **task scope** before you start: the originating issue, spec, or ticket. If
 there is no written scope, state in one sentence what this PR is and is not about. You
 cannot triage suggestions without it.
+
+Work can enter the loop from a **tracker item** (issue, ticket, or task) as well as
+from a direct request. When picking up tracker work, read the item's full body and
+comment thread first — the acceptance criteria and discussion are the scope. A
+vague item is handled autonomously, not by pausing: brainstorm the possible
+readings, record the ambiguity and your chosen interpretation in the PR
+description, infer the most bounded reading from the code and discussion
+context, and proceed when that reading is safe to ship. Only stop when every
+reading materially changes the work and the choice cannot be made safely —
+then report the blocker on the tracker item rather than waiting silently.
+Reference the item number in the PR description and close it via the
+forge (e.g. `Fixes #N`) so the tracker stays authoritative. `create issue` output
+from reviewer commands feeds this same entry: a freshly created issue is a new
+loop entry, not a dead end.
 
 ## Step 1 — Reach the loop entry: an open PR
 
@@ -115,10 +163,18 @@ The loop begins with an open PR. If no PR exists, perform these steps autonomous
 
 - Work on a **feature branch**, never the default branch. Create it with the
   conventional branch prefixes defined in the hard guardrails.
+- **Size the work before coding.** If the task is more than a trivial fix:
+  - **Brainstorm the intent first.** **REQUIRED SUB-SKILL:** `brainstorming` —
+    explore requirements and alternatives before committing to an approach;
+    for refactors, confirm the target design against the current code before
+    planning.
+  - **Design before implementing a refactor.** For anything restructuring
+    modules, contracts, or layers, **REQUIRED SUB-SKILL:** use
+    `codebase-design` / `request-refactor-plan` to produce the target design
+    and an incremental, independently-verifiable commit sequence — then
+    implement that plan. A refactor without a written plan drifts.
 - Implement the change. Write tests first where the work is a feature or bugfix
   (**REQUIRED SUB-SKILL:** `test-driven-development` / `bug-fix-tdd`).
-- Commit per file using the Conventional Commit types and meanings defined in
-  the hard guardrails.
 - Verify before claiming done. **REQUIRED SUB-SKILL:** use `verification-before-completion`.
 - **Confirm the worktree and branch are in sync with the default branch before pushing or
   opening the PR.** The working tree must be clean, and the PR branch must contain the
@@ -166,8 +222,23 @@ When the auto-reviewer finishes, fetch its output rather than eyeballing the web
 uv run fetch-pr-review <PR-URL | owner/repo/number>
 ```
 
-Read the whole review: the verdict, every **finding**, and every **suggestion** with its
-id. Do not react yet — triage first.
+If `fetch-pr-review` is not available in the repo, read the forge's **reviews
+endpoint** directly (`/repos/{owner}/{repo}/pulls/{number}/reviews`). The
+verdict and every suggestion live there — PR comments are a different resource,
+and a PR view reporting "0 comments" says nothing about reviews: an APPROVED
+review with suggestions coexists with zero comments.
+
+Read the whole review: the verdict, every **finding**, and every **suggestion**
+with its id. **An Approve verdict does not mean "no suggestions"** — triage
+them like any other. Do not react yet — triage first.
+
+The reviewer (pr-auto-reviewer) **polls** for open PRs and new pushes, so a
+review typically appears within roughly 2–3 minutes — but the delay is
+unbounded when it is mid-loop on another review, and it never posts PR
+comments. Poll the reviews endpoint on a cadence (e.g. every 30–60 s) for at
+least 10 minutes before drawing any conclusion. One early probe finding no
+review is not evidence the reviewer is unconfigured, and the reviews endpoint
+answers everything you might otherwise ask the human.
 
 If any finding's correctness is in doubt, **REQUIRED SUB-SKILL:** use `verify-pr-feedback`
 to classify it real / wrong / partial before acting. Do not blindly implement.
@@ -230,6 +301,17 @@ reference them back in the PR:
 uv run forge-issue create <owner/repo> "<title>" --label <role>   # body from stdin
 ```
 
+The reviewer processes these commands asynchronously through the same polling
+loop — typically a few minutes (observed ~2–3), longer when it is mid-loop on
+another review. After posting, verify the outcome before declaring the loop
+done: re-check the issues list and the PR comments until the `create issue`
+command has produced its tracking issue (record its number) and the `dismiss`
+is reflected. Poll on a cadence and allow at least 15 minutes; if still
+nothing, fall back to creating the issue directly (below) so no deferred
+suggestion is left untracked — and say so in the PR comment so a later bot
+action doesn't duplicate it.
+
+
 For breaking a larger deferred suggestion into proper vertical slices, use `to-issues`.
 
 ## Step 5 — Fix, push, re-loop
@@ -250,37 +332,55 @@ they are in scope — fix them.
 Only when **all** merge preconditions below hold. Merge the PR **through the forge**,
 never with a local merge into the default branch:
 
+Before merging, inspect the selected CLI's supported pull-request commands:
+
 ```bash
-# Use the command/API adapter selected from the current repository remote.
-$FORGE_CLI pr merge <number> --delete
+"$FORGE_CLI" --help
+"$FORGE_CLI" pr --help
 ```
 
-For hosts whose supported merge API differs from the selected CLI, use the corresponding
-`$FORGE_CLI`-selected API adapter rather than assuming GitHub or hard-coding another CLI.
+Use whichever merge subcommand and branch-deletion flag those help outputs document, or
+use the selected forge's API adapter. Do not copy a merge command or branch-deletion flag
+from another forge or assume it is portable across CLI versions.
 
 ### Post-merge workflow tracking
 
-After merging, continue tracking the merged commit's CI/CD workflows until each reaches a
-terminal state. Use the selected `$FORGE_CLI` (or its supported API adapter) to poll
-workflow/check status for that merge commit. If a workflow fails, rerun that workflow
-once with the selected CLI and resume tracking it. If it fails again, report the
-persistent failure and stop retrying that workflow; do not silently ignore it. Record a
-successful retry as the workflow's final outcome.
+After merging, continue tracking the merged commit's CI/CD workflows until each
+reaches a terminal state. Use the selected `$FORGE_CLI` (or its supported API
+adapter) to poll workflow/check status for that merge commit. If an initial
+workflow attempt fails, the model MUST perform at least two additional rerun
+attempts for that same workflow and MUST wait for each attempt to reach a
+terminal state before evaluating it. If either required rerun succeeds, record
+that workflow's final outcome as successful and continue tracking all other
+workflows. If the initial attempt and both additional reruns fail, the model MUST
+inspect the available workflow status, logs, and failure details, investigate and
+record the likely reason, and create a follow-up tracker task/issue whose next
+task is to implement the fix. Persistent post-merge failure keeps the pipeline
+unhealthy: do not declare the maintenance loop complete, do not claim all
+workflows are green, and do not silently ignore the failure. Continue tracking
+independent workflows to terminal states.
 
 Merge preconditions — **all** required, no exceptions:
 1. A review actually ran this turn and its verdict is **Approve** (never merge an
-   unreviewed PR, and never merge over a blocker or requested change).
-2. Every CI check / workflow / action on the PR head is **green**. Confirm it
-   explicitly — do not assume:
+   unreviewed PR, and never merge over a blocker or requested change). An
+   approved review counts only after you have fetched it and verified it is
+   fresh — it reviews the current head commit.
+2. **Every suggestion in the review is triaged before merging.** Verdict
+   Approve + untriaged suggestions means the loop is not finished: apply the
+   in-scope ones, post `create issue`/`dismiss` for the rest, and only then
+   merge. Merging ahead of triage forces the reviewer commands onto a merged
+   PR where they may not be processed.
+3. Every CI check / workflow / action on the PR head is **green**. Confirm it
+   explicitly — do not assume. First inspect the selected CLI's supported pull-request
+   status commands:
    ```bash
-   # GitHub
-   gh pr checks <number>            # every check must be "pass"; no fail/pending
-   # GitLab
-   glab ci status                  # pipeline for the MR head must be "success"
-   # Codeberg / Forgejo-compatible hosts
-   $FORGE_CLI pulls <number> -o yaml      # inspect status/checks for the head commit
+   "$FORGE_CLI" --help
+   "$FORGE_CLI" pr --help
    ```
-3. Every deferred suggestion has a tracking issue.
+   Use the status/check command documented by those help outputs, or the selected forge's
+   API adapter. Treat unsupported subcommands and version-specific flags as a blocked
+   operation, not as permission to substitute another forge CLI.
+4. Every deferred suggestion has a tracking issue.
 
 **Merging failing or unverified work is forbidden.** If any check is failing,
 pending, or missing — or if no review ran — do **not** merge. Fix the failure,
@@ -334,12 +434,16 @@ git push origin --delete <branch> # remote, after worktree cleanup
 | One `create issue` comment per suggestion | Batch all deferred prefixes into a single command, separated by ` , `. |
 | Dismissing all out-of-scope suggestions | Out of scope means issue when valuable, not automatic dismissal. |
 | Treating pending CI/CD as success | Wait for configured checks and workflows to finish; fix failures before merging. |
+| Rerunning a failed post-merge workflow only once or stopping after reporting it | Perform two additional reruns, wait for each to reach a terminal state, investigate logs/status after both fail, create a follow-up fix task, and keep the pipeline marked failed. |
 | Asking permission before routine maintenance actions | This workflow is autonomous; act while honoring the hard safety guardrails. |
 | Blindly implementing a finding that's wrong | Verify with `verify-pr-feedback`; push back with `receiving-code-review`. |
 | Merging with unresolved requested changes | Blocking items must be fixed before finishing. |
 | Merging with red or pending CI | All checks/workflows/actions must be green first. Verify with the selected `$FORGE_CLI` or its supported API adapter. |
 | Ignoring a tool finding on a modified file | Investigate and resolve findings from hooks, tests, linters, formatters, type checkers, and analyzers before finishing. Never suppress or skip them silently. |
 | Merging a PR that was never reviewed | A review must run and return **Approve** this turn before any merge. |
+| Concluding "no reviewer configured" from one early probe | The reviewer polls open PRs; a review typically lands in ~2–3 min but can take longer when it is mid-loop elsewhere. Poll the reviews endpoint, not PR comments; "0 comments" ≠ no review. Never report a missing reviewer or ask the human what the reviews API answers. |
+| Merging an Approve while suggestions are untriaged | Triage every suggestion first; merge only after in-scope fixes land and `create issue`/`dismiss` commands are posted. |
+| Posting `create issue`/`dismiss` and walking away | The bot processes commands through its polling loop (typically minutes, unbounded mid-loop); verify the tracking issue exists (or fall back to creating it directly, noting the duplicate risk) before declaring the loop done. |
 | Using vague or non-conventional commit messages | Classify every change, including miscellaneous work, with a defined type and use `<type>(<scope>): <imperative description>`. Use `chore` only when no more specific type fits. |
 | Committing / pushing / merging into the default branch | All work lands on the PR branch; merge the approved PR through the git host only. |
 | Skipping re-review after pushing fixes | The loop isn't done until the reviewer re-runs and approves. |
@@ -353,9 +457,10 @@ git push origin --delete <branch> # remote, after worktree cleanup
 - "The reviewer requested changes but I think it's fine, I'll merge" → fix or push back with evidence; never merge over a blocker.
 - "I'll just push this straight to main" / "I'll merge the branch into main locally" → never. Work on the PR branch; merge approved PRs through the git host.
 - "I fixed things locally, PR is basically approved" → not until the auto-review re-runs and approves.
-- "CI is probably fine, I'll merge" → confirm every check is green first; merging failing or pending work is forbidden.
-- "That hook/lint/test finding is unrelated, I'll ignore it" → not on a modified file. Investigate and resolve it, or document an evidence-based scope decision before continuing.
+- "No review showed up in my first check, so no reviewer exists" → the reviewer polls open PRs: typically ~2–3 min, longer when mid-loop on another review. Poll the reviews endpoint on a cadence for at least 10 minutes; it never posts PR comments.
+- "Verdict is Approve, so the review had nothing actionable" → an Approve can still carry suggestions; triage them all before merging.
 - "No review ran but it looks good, I'll merge" → never merge an unreviewed PR.
+- "That hook/lint/test finding is unrelated, I'll ignore it" → not on a modified file. Investigate and resolve it, or document an evidence-based scope decision before continuing.
 - "I'll `git add -A` to be safe" → no. That can sweep in unrelated session state,
   credentials, or temporary worktree files. Stage explicit paths only.
 - "This skill / `.pi` / `AGENTS.md` change is handy, I'll commit it too" → never.

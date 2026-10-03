@@ -5,40 +5,70 @@ from typing import Self
 OMP_NOTIFICATION_HOOK_PATH: Path = (
     Path.home() / ".omp" / "agent" / "hooks" / "post" / "ai-toolkit-notify.ts"
 )
-OMP_NOTIFICATION_HOOK_CONTENT: str = '''import type { HookAPI } from "@oh-my-pi/pi-coding-agent/extensibility/hooks";
+OMP_NOTIFICATION_HOOK_CONTENT: str = """import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const NOTIFY_TITLE: string = "omp agent";
-const TMUX_STATE_FORMAT: string = "#{session_name}|#{client_session}|#{window_active}";
+const TMUX_STATE_FORMAT: string = "#{session_name}|#{client_session}|#{window_index}|#{window_active}";
+
+type TaskStatus = "success" | "failure";
 
 interface TmuxWindowState {
   sessionName: string;
   clientSession: string;
+  windowIndex: string;
   windowActive: boolean;
 }
 
-interface AttentionContext {
-  hasQueuedMessages?: () => boolean;
-  isIdle?: () => boolean;
+interface RunMessage {
+  role?: string;
+  stopReason?: string;
+  isError?: boolean;
 }
 
-function taskIsComplete(context: AttentionContext): boolean {
-  if (typeof context.hasQueuedMessages === "function") {
-    return !context.hasQueuedMessages();
+function latestMessageWithRole(
+  messages: readonly RunMessage[],
+  role: string,
+): RunMessage | undefined {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.role === role) return message;
   }
-  if (typeof context.isIdle === "function") return context.isIdle();
-  return false;
+  return undefined;
 }
 
-async function tmuxWindowState(pi: HookAPI, cwd: string): Promise<TmuxWindowState | null> {
+function runStatus(messages: readonly RunMessage[]): TaskStatus {
+  const assistant = latestMessageWithRole(messages, "assistant");
+  if (assistant?.stopReason === "error" || assistant?.stopReason === "aborted") {
+    return "failure";
+  }
+  const toolResult = latestMessageWithRole(messages, "toolResult");
+  if (toolResult?.isError === true) return "failure";
+  return "success";
+}
+
+async function tmuxWindowState(
+  pi: ExtensionAPI,
+  cwd: string,
+): Promise<TmuxWindowState | null> {
   if (!process.env.TMUX) return null;
-  const result = await pi.exec("tmux", ["display-message", "-p", TMUX_STATE_FORMAT], { cwd });
-  if (result.code !== 0) return null;
-  const [sessionName, clientSession, windowActive] = result.stdout.trim().split("|");
-  return {
-    sessionName: sessionName ?? "",
-    clientSession: clientSession ?? "",
-    windowActive: windowActive === "1",
-  };
+  try {
+    const result = await pi.exec(
+      "tmux",
+      ["display-message", "-p", TMUX_STATE_FORMAT],
+      { cwd },
+    );
+    if (result.code !== 0) return null;
+    const [sessionName, clientSession, windowIndex, windowActive] =
+      result.stdout.trim().split("|");
+    return {
+      sessionName: sessionName ?? "",
+      clientSession: clientSession ?? "",
+      windowIndex: windowIndex ?? "",
+      windowActive: windowActive === "1",
+    };
+  } catch {
+    return null;
+  }
 }
 
 function userIsViewingWindow(state: TmuxWindowState | null): boolean {
@@ -47,31 +77,49 @@ function userIsViewingWindow(state: TmuxWindowState | null): boolean {
 }
 
 function attentionLocation(state: TmuxWindowState | null, cwd: string): string {
-  if (state !== null && state.sessionName) return `${cwd} (tmux ${state.sessionName})`;
+  if (state !== null && state.sessionName) {
+    return `${cwd} (tmux ${state.sessionName}:${state.windowIndex})`;
+  }
   return cwd;
 }
 
-async function notifyAttention(pi: HookAPI, cwd: string, reason: string): Promise<void> {
-  const state = await tmuxWindowState(pi, cwd);
-  if (userIsViewingWindow(state)) return;
-  const message = `omp: ${reason} in ${attentionLocation(state, cwd)}`;
-  await pi.exec("notify-send", [NOTIFY_TITLE, message], { cwd });
+async function notifyAttention(
+  pi: ExtensionAPI,
+  cwd: string,
+  reason: string,
+): Promise<void> {
+  try {
+    const state = await tmuxWindowState(pi, cwd);
+    if (userIsViewingWindow(state)) return;
+    const message = `omp: ${reason} in ${attentionLocation(state, cwd)}`;
+    await pi.exec("notify-send", [NOTIFY_TITLE, message], { cwd });
+  } catch {
+  }
 }
 
-export default function notifyHook(pi: HookAPI): void {
-  pi.on("turn_end", async (_event, ctx) => {
-    if (!ctx.hasUI) return;
-    const attentionContext: AttentionContext = ctx;
-    if (!taskIsComplete(attentionContext)) return;
-    await notifyAttention(pi, ctx.cwd, "task complete");
-  });
+export default function notifyHook(pi: ExtensionAPI): void {
+  let status: TaskStatus = "success";
 
-  pi.on("tool_call", async (event, ctx) => {
+  pi.on("ui_prompt_start", async (_event, ctx) => {
     if (!ctx.hasUI) return;
-    if (event.toolName !== "ask") return;
     await notifyAttention(pi, ctx.cwd, "input needed");
   });
-}'''
+
+  pi.on("agent_start", (_event) => {
+    status = "success";
+  });
+
+  pi.on("agent_end", (event) => {
+    status = runStatus(event.messages as readonly RunMessage[]);
+  });
+
+  pi.on("agent_settled", async (_event, ctx) => {
+    if (!ctx.hasUI) return;
+    const reason = status === "success" ? "task complete" : "task failed";
+    await notifyAttention(pi, ctx.cwd, reason);
+  });
+}"""
+
 
 class OmpNotificationHooksInstaller:
     """Install the native OMP attention notification hook."""
