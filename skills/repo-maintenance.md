@@ -176,9 +176,7 @@ The loop begins with an open PR. If no PR exists, perform these steps autonomous
 - Implement the change. Write tests first where the work is a feature or bugfix
   (**REQUIRED SUB-SKILL:** `test-driven-development` / `bug-fix-tdd`).
 - Verify before claiming done. **REQUIRED SUB-SKILL:** use `verification-before-completion`.
-- **Confirm the worktree and branch are in sync with the default branch before pushing or
-  opening the PR.** The working tree must be clean, and the PR branch must contain the
-  latest default-branch commits:
+- **Confirm the worktree and branch are in sync with the default branch before opening the PR and before every push or review/merge iteration.** The working tree MUST be clean, and the PR branch MUST contain the latest default-branch commits:
   ```bash
   git status --porcelain            # MUST be empty before synchronization
   git fetch origin
@@ -192,7 +190,13 @@ The loop begins with an open PR. If no PR exists, perform these steps autonomous
   If the rebase produces conflicts, resolve them, re-run the relevant tests, and repeat
   this gate. Confirm that `git branch --show-current` is the PR branch and `git worktree
   list` shows this worktree checked out on that branch; never push from a detached or wrong
-  worktree. Do not open the PR until all checks above pass.
+  worktree. Do not open or update the PR until all checks above pass.
+
+- **An existing PR is not exempt from synchronization.** If the default branch advances
+  while the PR is open, stop review and merge work, repeat the synchronization gate,
+  re-run the relevant tests, and push the updated feature branch. Treat the PR as blocked
+  until the remote PR head includes the latest default-branch commits; do not claim it is
+  ready or healthy merely because it was previously opened.
 
 - **Push the feature branch** and open the PR against the default branch.
 
@@ -209,8 +213,9 @@ Use the linked Codeberg PR style as a quality bar for a clear, narrative descrip
 `https://codeberg.org/gbrennon/ephact/pulls/234`.
 The scope statement is the boundary used to evaluate every later suggestion.
 
-If a PR is already open (yours or one you are maintaining), skip straight to Step 2 and
-iterate on it.
+If a PR is already open (yours or one you are maintaining), run the synchronization
+gate above first; only then skip to Step 2 and iterate on it. An existing PR is never
+exempt from the synchronization gate.
 
 **Never push these commits to the default branch.** They belong to the PR branch only.
 
@@ -318,7 +323,11 @@ For breaking a larger deferred suggestion into proper vertical slices, use `to-i
 
 - Apply blocking fixes and in-scope suggestions. Commit them per file using the
   Conventional Commit rules defined in the hard guardrails.
-- Push **to the PR branch** (never the default branch). This retriggers the auto-review.
+- Before pushing fixes, repeat the synchronization gate above. If the default branch
+  advanced, rebase the feature branch, re-run the relevant tests, and keep the PR
+  blocked until the remote PR head contains the updated feature branch.
+- Push the updated feature branch to the PR branch (never the default branch). This
+  retriggers the auto-review.
 - If CI/CD is configured, wait for all checks and workflows for the PR head to reach a
   terminal state before treating the iteration as complete. Pending work is not green;
   inspect failures and fix or rerun them according to the forge's rules.
