@@ -8,9 +8,10 @@ Each skill is a reusable prompt fragment that teaches an agent a specific practi
 
 ```bash
 uv sync                    # install dependencies
+make install-cli           # install the ai-toolkit CLI onto PATH
 make install-mcp           # install & deploy MCP servers
 make install-skills        # install skills
-make install               # install both
+make install               # install everything
 ```
 
 ## Make Targets
@@ -18,10 +19,11 @@ make install               # install both
 | Command | Description |
 |---------|-------------|
 | `make setup` | Install dependencies (`uv sync`) |
+| `make install-cli` | Install the `ai-toolkit` CLI into the active Python environment |
 | `make install-mcp` | Install MCP servers from `mcp/mcp.json` and deploy to all agents |
 | `make install-skills` | Install skills |
 | `make install-agent-rules` | Compose `agent_rules/` into every AGENTS.md target listed in the manifest |
-| `make install` | Install everything (mcp + skills) |
+| `make install` | Install everything (cli + mcp + skills + rules + hooks) |
 | `make deploy-mcp` | Same as `install-mcp` — install + deploy to all agents |
 | `make test` | Run all tests |
 | `make test-unit` | Run unit tests only |

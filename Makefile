@@ -10,10 +10,14 @@ help:
 	@grep -E '^[a-zA-Z0-9_-]+:' $(MAKEFILE_LIST) | cut -d: -f1 | sort | awk '{printf "  \033[36m%-28s\033[0m\n", $$1}'
 	@echo ""
 	@echo "  make install   runs all install targets"
+	@echo "  make install-cli installs the ai-toolkit CLI onto PATH"
 	@echo "  make help      show this help"
 
 setup:
 	$(UV) sync
+
+install-cli:
+	$(UV) pip install --system -e .
 
 install-mcp:
 	$(UV) run install-mcp-servers
@@ -42,7 +46,7 @@ HOOK_AGENT ?= all
 install-hooks: install-quality-cli
 	$(UV) run install-hooks --agent $(HOOK_AGENT)
 
-install: install-mcp install-skills install-agent-rules install-omp-commands install-provider-blocks install-pi-config install-quality-cli install-hooks
+install: install-cli install-mcp install-skills install-agent-rules install-omp-commands install-provider-blocks install-pi-config install-quality-cli install-hooks
 
 install-pi-config:
 	$(UV) run install-pi-config
