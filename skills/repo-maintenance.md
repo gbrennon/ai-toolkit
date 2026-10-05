@@ -105,12 +105,14 @@ Classify each item by correctness, scope, and risk:
 |---|---|
 | Blocking finding or requested change | Fix it on this PR branch. |
 | Correct, cheap, in-scope suggestion | Apply it on this PR branch. |
-| Valuable, large, or out-of-scope suggestion | Create a tracking issue. |
-| Incorrect, harmful, duplicate, or irrelevant suggestion | Dismiss it with a reason. |
+| Valuable, large, or out-of-scope suggestion | Comment `create issue <ids>` on the PR. |
+| Incorrect, harmful, duplicate, or irrelevant suggestion | Comment `dismiss <ids>` on the PR. |
 
 An approved verdict does not eliminate suggestions. Use `pr-interaction` to post
-`create issue` or `dismiss` commands, then verify their outcomes in the PR and
-issue list. Do not create duplicate issues when falling back to direct issue creation.
+exactly one batched `create issue` or `dismiss` command in a pull-request
+comment, then verify the command outcome in the PR and issue list. Never
+manually invoke an issue-creation command and never use a direct issue-creation
+fallback.
 
 ## Step 4 — Fix and re-loop
 
