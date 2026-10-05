@@ -34,8 +34,10 @@ def test_maintenance_defines_autonomous_pr_entry() -> None:
 
 def test_maintenance_requires_review_triage_and_ci() -> None:
     assert "every finding and suggestion" in SKILL
-    assert "Create a tracking issue" in SKILL
-    assert "Dismiss it with a reason" in SKILL
+    assert "Comment `create issue <ids>` on the PR." in SKILL
+    assert "Comment `dismiss <ids>` on the PR." in SKILL
+    assert "Never\nmanually invoke an issue-creation command" in SKILL
+    assert "direct issue-creation\nfallback" in SKILL
     assert "Every configured CI check" in SKILL
     assert "CI is failing, pending, unavailable, or missing" in SKILL
 
@@ -62,10 +64,11 @@ def test_pr_interaction_owns_forge_selection_and_merge_commands() -> None:
 def test_pr_interaction_owns_review_queries_and_triage() -> None:
     assert "Pull-request reviews" in PR_INTERACTION
     assert "Commit statuses and workflow runs" in PR_INTERACTION
-    assert "create issue <suggestion-id-prefix-1>" in PR_INTERACTION
-    assert "dismiss <suggestion-id-prefix-1>" in PR_INTERACTION
-    assert "Do not create duplicate issues" in PR_INTERACTION
-
+    assert "create issue <ids>" in PR_INTERACTION
+    assert "dismiss <ids>" in PR_INTERACTION
+    assert "`<id1> , <id2> , <id3>`" in PR_INTERACTION
+    assert "Never invoke an issue" in PR_INTERACTION
+    assert "do not create duplicate issues" in PR_INTERACTION
 
 def test_skill_sources_have_no_merge_conflict_markers() -> None:
     for skill in (SKILL, PR_INTERACTION):
