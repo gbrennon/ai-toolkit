@@ -7,7 +7,7 @@ from typing import Any, Self
 PI_SETTINGS: Path = Path.home() / ".pi" / "agent" / "settings.json"
 HOOK_PACKAGE: str = "@hsingjui/pi-hooks"
 HOOK_CMD: str = "check-modified-code-quality"
-HOOK_MATCHER: str = "write|edit|read"
+HOOK_MATCHER: str = "write|edit"
 NOTIFICATION_CMD: str = (
     "if [ -n \"${TMUX:-}\" ]; then "
     "tmux_state=$(tmux display-message -p '#{client_session}|#{window_active}'); "
@@ -21,6 +21,7 @@ CODE_EXTENSIONS: tuple[str, ...] = (
     "py", "rs", "go", "ts", "tsx", "js", "jsx",
     "java", "kt", "swift", "cs", "c", "h", "cc",
     "cpp", "hpp", "cxx", "rb", "php", "scala", "lua", "sh",
+    "md", "markdown",
 )
 
 
@@ -68,7 +69,7 @@ class PiHooksInstaller:
                     "if": f"{tool}(*.{extension})",
                     "command": HOOK_CMD,
                 }
-                for tool in ("Write", "Edit", "Read")
+                for tool in ("Write", "Edit")
                 for extension in CODE_EXTENSIONS
             ],
         }

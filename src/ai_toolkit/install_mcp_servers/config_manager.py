@@ -1,31 +1,9 @@
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List
 
 from ai_toolkit.install_mcp_servers.models.mcp_server_def import McpServerDef
-from ai_toolkit.install_mcp_servers.config_loader import ConfigLoader
-from ai_toolkit.install_mcp_servers.config_paths import ConfigPaths
-from ai_toolkit.install_mcp_servers.env_override_applier import EnvOverrideApplier
+from ai_toolkit.install_mcp_servers.config_dependencies import ConfigDependencies
 from ai_toolkit.install_mcp_servers.parsing.load_mcp_json import load_mcp_json
-from ai_toolkit.install_mcp_servers.server_config_parser import ServerConfigParser
-
-
-@dataclass
-class ConfigDependencies:
-    """Grouped constructor dependencies for ConfigManager.
-
-    Defaults wire the real implementations.  Pass a custom instance to
-    inject mocks for testing.
-    """
-
-    config_paths: ConfigPaths = field(default_factory=ConfigPaths)
-    config_loader: ConfigLoader | None = None
-    env_override_applier: EnvOverrideApplier = field(default_factory=EnvOverrideApplier)
-    server_config_parser: ServerConfigParser = field(default_factory=ServerConfigParser)
-
-    def __post_init__(self) -> None:
-        if self.config_loader is None:
-            self.config_loader = ConfigLoader(self.config_paths)
 
 
 class ConfigManager:

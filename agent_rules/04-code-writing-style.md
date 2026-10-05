@@ -54,7 +54,8 @@ or plain) — follow what the codebase already uses.
 - Use a class-level factory only when it returns an instance of the class that defines it.
 - Use an instance method when a dedicated factory class creates another class.
 - Never use a static method as a factory.
-- In Python, annotate a same-class class-level factory return with `Self`, never a quoted class name.
+- In Python, annotate a same-class class-level factory return with `Self`
+  and never use a quoted class name.
 - Apply the equivalent same-class return-type rule in Rust, Scala, and other languages.
 
 ## Quantitative Size and Complexity Limits
@@ -141,3 +142,13 @@ or plain) — follow what the codebase already uses.
       assertions.
     - Redesign the contract or interface if the current abstraction cannot be
       cleanly typed.
+
+## Enforced Shape Limits
+
+- Constructors accept at most five dependencies.
+- Classes expose at most five public methods; private helpers remain focused
+  and implementation-only.
+- Rust `pub(super)` visibility is forbidden.
+- Production objects must not mutate instance state.
+- Python properties and Rust getters must remain immutable and do not count as
+  methods.

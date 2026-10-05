@@ -19,7 +19,6 @@ class PROpenedHook:
     def __init__(self, events_dir: Path = Path(".agent-events"), cache_ttl: int = 300):
         self.events_dir = events_dir
         self.cache_ttl = cache_ttl
-        self.processed_events: set[str] = set()
 
     def _ensure_events_directory_exists(self) -> bool:
         """
@@ -52,8 +51,6 @@ class PROpenedHook:
             for file in self.events_dir.iterdir():
                 if not self._is_valid_event_file(file):
                     continue
-                if str(file) in self.processed_events:
-                    continue
                 return True
 
             return False
@@ -62,50 +59,40 @@ class PROpenedHook:
             return False
 
     def run(self) -> bool:
-        """
-        Run maintenance loop for first detected PR.
-        Returns True on success.
-        """
+        """Run maintenance for the first valid pull-request event."""
         try:
-            # Find first valid event file
             for file in self.events_dir.iterdir():
                 if not self._is_valid_event_file(file):
                     continue
-                if str(file) in self.processed_events:
-                    continue
-
-                # Process it
-                pr_number, pr_url, branch = self._parse_event_file(file)
-                if not pr_number or not pr_url:
-                    continue
-
-                # Report status
-                print(f"[HOOK] 🟢 Detected PR #{pr_number} at {pr_url} on branch {branch}")
-                if self._is_dirty_state():
-                    print(f"[HOOK] ⚠️ Working tree is dirty. Proceeding anyway.")
-                else:
-                    print(f"[HOOK] ✅ Working tree is clean")
-
-                # Trigger maintenance
-                cmd = f"uv run repo-maintenance \"{pr_url}\" --auto-update --cache-ttl={self.cache_ttl}"  # noqa: E501
-                print(f"[HOOK] 🔁 Running: {cmd}")
-                result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-
-                if result.returncode == 0:
-                    print(f"[HOOK] ✅ Maintenance completed successfully for PR #{pr_number}")
-                    self.processed_events.add(str(file))
-                    file.unlink()
-                    print(f"[HOOK] 💀 Removed event file: {file.name}")
-                    return True
-                else:
-                    error_msg = result.stderr.strip() or 'Unknown'
-                    print(f"[HOOK] ❌ Error during maintenance: {error_msg}")
-                    return False
-
+                result = self._process_event(file)
+                if result is not None:
+                    return result
             return False
-        except Exception as e:
-            print(f"[HOOK] Critical failure running hook: {e}")
+        except Exception as error:
+            print(f"[HOOK] Critical failure running hook: {error}")
             return False
+
+    def _process_event(self, file: Path) -> bool | None:
+        pr_number, pr_url, branch = self._parse_event_file(file)
+        if pr_number is None or pr_url is None:
+            return None
+        print(f"[HOOK] Detected PR #{pr_number} at {pr_url} on branch {branch}")
+        self._report_worktree_state()
+        command = f'uv run repo-maintenance "{pr_url}" --auto-update --cache-ttl={self.cache_ttl}'
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        return self._finish_event(file, pr_number, result)
+
+    def _report_worktree_state(self) -> None:
+        message = "Working tree is dirty. Proceeding anyway." if self._is_dirty_state() else "Working tree is clean"
+        print(f"[HOOK] {message}")
+
+    def _finish_event(self, file: Path, pr_number: int, result: subprocess.CompletedProcess[str]) -> bool:
+        if result.returncode != 0:
+            print(f"[HOOK] Maintenance failed: {result.stderr.strip() or 'Unknown'}")
+            return False
+        print(f"[HOOK] Maintenance completed successfully for PR #{pr_number}")
+        file.unlink()
+        return True
 
     def _is_valid_event_file(self, file: Path) -> bool:
         """
@@ -117,26 +104,38 @@ class PROpenedHook:
                 file.suffix == ".json")
 
     def _parse_event_file(self, file: Path) -> tuple[Optional[int], Optional[str], Optional[str]]:
-        """
-        Parse JSON content to extract PR number, URL, and branch.
-        Returns (number, url, branch) or (None, None, None) on failure.
-        """
+        """Parse a JSON event file into pull-request identifiers."""
         try:
-            with open(file) as f:
-                data = json.load(f)
-
-            pr_data = data.get("pull_request", {})
-            if not isinstance(pr_data, dict):
-                return None, None, None
-
-            pr_num = pr_data.get("number")
-            pr_url = pr_data.get("html_url")
-            head_ref = pr_data.get("head", {}).get("ref")
-
-            return int(pr_num), str(pr_url), str(head_ref)
-        except Exception as e:
-            print(f"[HOOK] Failed to parse event file {file}: {e}")
+            with open(file) as event_file:
+                data = json.load(event_file)
+            return self._parse_event_payload(data)
+        except Exception as error:
+            print(f"[HOOK] Failed to parse event file {file}: {error}")
             return None, None, None
+
+    def _parse_event_payload(
+        self,
+        data: object,
+    ) -> tuple[Optional[int], Optional[str], Optional[str]]:
+        if not isinstance(data, dict):
+            return None, None, None
+        pull_request = data.get("pull_request")
+        if not isinstance(pull_request, dict):
+            return None, None, None
+        return self._parse_pull_request(pull_request)
+
+    def _parse_pull_request(
+        self,
+        pull_request: dict[object, object],
+    ) -> tuple[Optional[int], Optional[str], Optional[str]]:
+        pr_num = pull_request.get("number")
+        pr_url = pull_request.get("html_url")
+        head = pull_request.get("head")
+        if not isinstance(pr_num, (int, str)) or not isinstance(pr_url, str):
+            return None, None, None
+        if not isinstance(head, dict) or not isinstance(head.get("ref"), str):
+            return None, None, None
+        return int(pr_num), pr_url, head["ref"]
 
     def _is_dirty_state(self) -> bool:
         """
