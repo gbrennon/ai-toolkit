@@ -11,16 +11,24 @@ pull-request head captured when polling begins.
 
 ## Usage
 
-Run the hook after opening a pull request or pushing a new head:
+The command is defined by this repository's `agent-hook-pr-review` project
+script. From a checkout, run it through the repository environment:
 
 ```bash
+uv run agent-hook-pr-review <PR-URL | owner/repo/number> --listen
+```
+
+To install the repository CLI onto `PATH`, run:
+
+```bash
+make install-cli
 agent-hook-pr-review <PR-URL | owner/repo/number> --listen
 ```
 
 Run without `--listen` to check once:
 
 ```bash
-agent-hook-pr-review <PR-URL | owner/repo/number>
+uv run agent-hook-pr-review <PR-URL | owner/repo/number>
 ```
 
 The command prints the matching review as JSON. It does not modify code, create
