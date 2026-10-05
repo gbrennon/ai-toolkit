@@ -41,74 +41,35 @@ graph TD
 
 ## Usage Pattern
 
-Instead of calling `uv run fetch-pr-review`, use this hook:
+Run the hook after opening or pushing a pull request:
 
 ```bash
-uv run agent-hook-pr-review <pr-url> --listen --auto-update --cache-ttl 300s
+uv run agent-hook-pr-review <PR-URL | owner/repo/number> --listen
 ```
 
-### Flags Explained:
-- `--listen`: Start monitoring for real-time updates (via webhooks or polling)
-- `--auto-update`: Automatically update local state when changes are detected
-- `--cache-ttl 300s`: Cache results for 5 minutes to reduce redundant calls
+The hook polls the forge reviews endpoint, refreshes the pull-request head,
+filters out reviews for older commits, and waits with capped incremental
+backoff: `30s`, `60s`, `120s`, `240s`, then `300s`. Without `--listen`, it
+checks once and exits when no current-head review exists.
 
 ## Integration with Existing Skills
 
-This hook works seamlessly with:
-- `repo-maintenance.md` – triggers maintenance loop automatically
-- `pr-review-updates.md` – uses efficient API calls under the hood
-- `taskwarrior` – creates tasks for high-priority issues
-- `to-issues` – converts deferred suggestions into actionable tickets
+`repo-maintenance.md` starts this hook after opening or updating a pull request.
+When the hook receives a current-head review, the maintenance workflow fetches
+the complete review and continues its triage loop.
 
-Example integration:
-```bash
-# When a new review comes in:
-uv run agent-hook-pr-review https://github.com/owner/repo/pull/42 \
-  --on-new-review "run repo-maintenance" \
-  --on-changes-requested "create issue" \
-  --on-ci-fail "notify dev"
-```
+The hook only waits for and reports review data. It does not create issues,
+modify code, or merge pull requests.
 
-## Configuration File: `.agenthookrc`
+## Polling Contract
 
-Create this file at project root to customize behavior:
-```json
-{
-  "events": {
-    "pull_request_review": true,
-    "check_run": true,
-    "status": true
-  },
-  "polling_interval": 60,
-  "webhook_enabled": true,
-  "cache_ttl_seconds": 300,
-  "max_retries": 3,
-  "retry_backoff_ms": 1000,
-  "actions": {
-    "new_review": "run repo-maintenance",
-    "changes_requested": "create issue",
-    "ci_failed": "notify dev"
-  }
-}
-```
+- The hook fetches the pull-request head before checking reviews.
+- Reviews for older commits do not satisfy the wait.
+- `--listen` enables polling until a current-head review appears.
+- Polling uses capped incremental backoff: `30s`, `60s`, `120s`, `240s`, then
+  `300s`.
 
-## Benefits Over Previous Approach
-| Feature | Old Way | New Hook |
-|--------|---------|----------|
-| Efficiency | High token cost, full-content downloads | Low cost, focused data only |
-| Automation | Manual checks required | Automatic event-driven responses |
-| Scalability | Poor — scales poorly with many PRs | Excellent — handles multiple PRs efficiently |
-| Maintainability | Hard to extend | Easy to configure via .agenthookrc |
-| Real-time Support | No | Yes — supports webhooks and polling |
+## Operational Guidance
 
-## Best Practices
-
-1. Always use this hook instead of direct `fetch-pr-review` commands.
-2. Set up actual GitHub webhooks in your repository settings for real-time updates (no polling).
-3. Use `.agenthookrc` to define custom behaviors per project.
-4. Monitor logs to ensure events are being processed correctly.
-5. Combine with `taskwarrior` or `to-issues` to turn feedback into tracked work items.
-
-> 💡 **Pro Tip**: Run this hook as a background process during development sessions so it’s always listening without interrupting workflow.
-
-This is now the official way to handle PR reviews in any agent-based workflow.
+Start the hook after opening the pull request and restart it after pushing a new
+head. Use the one-shot mode when a caller needs to check once without waiting.
