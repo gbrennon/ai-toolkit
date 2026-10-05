@@ -27,4 +27,4 @@ class TestOpenCodeHooksInstaller:
         assert '"check-code-quality"' in content
         assert '"ai-toolkit-hook-circuit-breaker"' in content
         assert '"py"' in content
-        assert '"md"' not in content
+        assert '"md"' in content

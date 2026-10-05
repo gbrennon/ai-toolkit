@@ -21,6 +21,7 @@ CODE_EXTENSIONS: tuple[str, ...] = (
     "py", "rs", "go", "ts", "tsx", "js", "jsx",
     "java", "kt", "swift", "cs", "c", "h", "cc",
     "cpp", "hpp", "cxx", "rb", "php", "scala", "lua", "sh",
+    "md", "markdown",
 )
 
 

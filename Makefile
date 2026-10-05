@@ -38,9 +38,12 @@ install-quality-cli:
 	mkdir -p $(HOME)/.local/bin $(HOME)/.config/ai-toolkit/semgrep
 	install -m 755 scripts/check-code-quality.sh $(HOME)/.local/bin/check-code-quality
 	install -m 755 scripts/check-modified-code-quality.sh $(HOME)/.local/bin/check-modified-code-quality
+	install -m 755 scripts/check_agent_artifacts.py $(HOME)/.local/bin/check_agent_artifacts.py
+	install -m 755 scripts/check_markdown_quality.py $(HOME)/.local/bin/check_markdown_quality.py
+	install -m 755 scripts/check_structural_quality.py $(HOME)/.local/bin/check_structural_quality.py
 	install -m 755 scripts/hook-circuit-breaker.py $(HOME)/.local/bin/ai-toolkit-hook-circuit-breaker
 	cp -r rules/semgrep/* $(HOME)/.config/ai-toolkit/semgrep/
-
+	install -m 644 rules/agent-artifacts.txt $(HOME)/.config/ai-toolkit/agent-artifacts.txt
 HOOK_AGENT ?= all
 
 install-hooks: install-quality-cli

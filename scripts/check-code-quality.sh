@@ -93,6 +93,22 @@ check_semgrep() {
     return 1
   fi
 }
+run_edit_policy() {
+  local script_dir="$1"
+  local target="$2"
+  local suffix="${target##*.}"
+  local rules_dir="${AI_TOOLKIT_RULES_DIR:-${HOME}/.config/ai-toolkit}"
+
+  AI_TOOLKIT_RULES_DIR="$rules_dir" python3 "$script_dir/check_agent_artifacts.py" "$target"
+  if [[ "$suffix" == "md" || "$suffix" == "markdown" ]]; then
+    python3 "$script_dir/check_markdown_quality.py" "$target"
+    return 0
+  fi
+  if [[ "$suffix" == "py" || "$suffix" == "rs" ]]; then
+    python3 "$script_dir/check_structural_quality.py" "$target"
+  fi
+}
+
 
 main() {
   set -euo pipefail
@@ -188,6 +204,14 @@ main() {
   done
 
   target="${target:-.}"
+  if [[ -f "$target" ]]; then
+    run_edit_policy "$script_dir" "$target"
+    if [[ "$target" == *.md || "$target" == *.markdown ]]; then
+      echo "Markdown quality checks passed."
+      exit 0
+    fi
+  fi
+
   workspace_dir="$PWD"
 
   if [[ "$init_mode" == true ]]; then

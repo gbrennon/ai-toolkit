@@ -141,3 +141,12 @@ or plain) — follow what the codebase already uses.
       assertions.
     - Redesign the contract or interface if the current abstraction cannot be
       cleanly typed.
+
+## Enforced Shape Limits
+
+- Constructors accept at most five dependencies.
+- Classes expose at most five public methods; private helpers remain focused and implementation-only.
+- Rust `pub(super)` visibility is forbidden.
+- Production objects must not mutate instance state.
+- Python properties and Rust getters must remain immutable and do not count as
+  methods.
