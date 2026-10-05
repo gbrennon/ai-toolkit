@@ -221,7 +221,19 @@ exempt from the synchronization gate.
 
 ## Step 2 — Read the review
 
-When the auto-reviewer finishes, fetch its output rather than eyeballing the web UI:
+Start the review hook after the PR is open:
+
+```bash
+uv run agent-hook-pr-review <PR-URL | owner/repo/number> --listen
+```
+
+The hook fetches the current PR head before each polling cycle, ignores reviews
+for older commits, and uses incremental capped backoff:
+`30s`, `60s`, `120s`, `240s`, then `300s`. It stops as soon as a review for
+the current head appears. Do not replace this with repeated requests using a
+fixed sleep interval.
+
+When the hook reports a review, fetch the complete output:
 
 ```bash
 uv run fetch-pr-review <PR-URL | owner/repo/number>
@@ -235,15 +247,7 @@ review with suggestions coexists with zero comments.
 
 Read the whole review: the verdict, every **finding**, and every **suggestion**
 with its id. **An Approve verdict does not mean "no suggestions"** — triage
-them like any other. Do not react yet — triage first.
-
-The reviewer (pr-auto-reviewer) **polls** for open PRs and new pushes, so a
-review typically appears within roughly 2–3 minutes — but the delay is
-unbounded when it is mid-loop on another review, and it never posts PR
-comments. Poll the reviews endpoint on a cadence (e.g. every 30–60 s) for at
-least 10 minutes before drawing any conclusion. One early probe finding no
-review is not evidence the reviewer is unconfigured, and the reviews endpoint
-answers everything you might otherwise ask the human.
+them like any other. Do not react until the full review is fetched.
 
 If any finding's correctness is in doubt, **REQUIRED SUB-SKILL:** use `verify-pr-feedback`
 to classify it real / wrong / partial before acting. Do not blindly implement.

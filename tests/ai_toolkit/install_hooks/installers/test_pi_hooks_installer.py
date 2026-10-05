@@ -1,5 +1,7 @@
 import json
+import os
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -21,8 +23,6 @@ def _expected_tool_conditions() -> set[str]:
         for tool in ("Write", "Edit")
         for ext in CODE_EXTENSIONS
     }
-
-
 
 
 class TestPiHooksInstaller:
@@ -139,3 +139,63 @@ class TestPiHooksInstaller:
             json.dumps(data1, sort_keys=True)
             == json.dumps(data2, sort_keys=True)
         ), "Multiple runs should produce identical settings"
+
+
+def run_notification_command(
+    tmp_path: Path,
+    tmux_output: str,
+) -> subprocess.CompletedProcess[str]:
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    tmux = bin_dir / "tmux"
+    tmux.write_text(
+        "#!/bin/sh\nprintf '%s\\n' \"$TMUX_OUTPUT\"\n",
+        encoding="utf-8",
+    )
+    tmux.chmod(0o755)
+    notify_send = bin_dir / "notify-send"
+    notify_send.write_text(
+        "#!/bin/sh\nprintf '%s\\n' \"$@\" > \"$NOTIFY_LOG\"\n",
+        encoding="utf-8",
+    )
+    notify_send.chmod(0o755)
+    environment = {
+        **os.environ,
+        "PATH": f"{bin_dir}:{os.environ['PATH']}",
+        "TMUX": "tmux-socket",
+        "TMUX_OUTPUT": tmux_output,
+        "NOTIFY_LOG": str(tmp_path / "notify.log"),
+    }
+    return subprocess.run(
+        ["sh", "-c", NOTIFICATION_CMD],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+        env=environment,
+    )
+
+
+def test_notification_command_includes_tmux_session_name() -> None:
+    assert "#{session_name}|#{client_session}|#{window_active}" in NOTIFICATION_CMD
+
+
+def test_notification_command_includes_session_name_in_message(
+    tmp_path: Path,
+) -> None:
+    result = run_notification_command(tmp_path, "project|client|0")
+
+    assert result.returncode == 0
+    assert (tmp_path / "notify.log").read_text(encoding="utf-8").splitlines() == [
+        "pi agent",
+        f"pi: attention needed in {tmp_path} (tmux project)",
+    ]
+
+
+def test_notification_command_suppresses_visible_tmux_window(
+    tmp_path: Path,
+) -> None:
+    result = run_notification_command(tmp_path, "project|client|1")
+
+    assert result.returncode == 0
+    assert not (tmp_path / "notify.log").exists()
