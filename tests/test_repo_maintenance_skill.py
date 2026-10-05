@@ -53,13 +53,18 @@ def test_skill_defines_reasoned_review_commands():
     assert "reason" in SKILL.lower()
 
 
-def test_skill_requires_pre_pr_worktree_synchronization():
+def test_skill_requires_pr_synchronization_before_open_and_each_iteration():
     assert "git fetch origin" in SKILL
     assert "DEFAULT_BRANCH=" in SKILL
     assert "git merge-base --is-ancestor" in SKILL
     assert "git status --porcelain            # MUST still be empty after rebase" in SKILL
     assert "git branch --show-current" in SKILL
     assert "git worktree list" in SKILL
+    assert "before opening the PR and before every push or review/merge iteration" in SKILL
+    assert "An existing PR is not exempt from synchronization" in SKILL
+    assert "If the default branch advances" in SKILL
+    assert "while the PR is open" in SKILL
+    assert "remote PR head includes the latest default-branch commits" in SKILL
 
 
 def test_skill_places_synchronization_gate_before_push_instruction():
