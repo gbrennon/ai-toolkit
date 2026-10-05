@@ -5,7 +5,6 @@ import pytest
 
 from ai_toolkit.install_hooks.installers.pi_hooks_installer import (
     CODE_EXTENSIONS,
-    HOOK_CMD,
     HOOK_MATCHER,
     HOOK_PACKAGE,
     NOTIFICATION_CMD,
@@ -19,9 +18,11 @@ pytestmark = pytest.mark.integration
 def _expected_tool_conditions() -> set[str]:
     return {
         f"{tool}(*.{ext})"
-        for tool in ("Write", "Edit", "Read")
+        for tool in ("Write", "Edit")
         for ext in CODE_EXTENSIONS
     }
+
+
 
 
 class TestPiHooksInstaller:

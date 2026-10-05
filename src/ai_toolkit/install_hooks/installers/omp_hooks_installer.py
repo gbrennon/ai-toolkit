@@ -10,6 +10,7 @@ OMP_HOOK_CONTENT: str = """import type { ExtensionAPI } from "@earendil-works/pi
 const CODE_EXTENSIONS: Set<string> = new Set([
   "py", "rs", "go", "ts", "tsx", "js", "jsx", "java", "kt", "swift",
   "cs", "c", "h", "cc", "cpp", "hpp", "cxx", "rb", "php", "scala", "lua", "sh",
+  "md", "markdown",
 ]);
 const EDIT_TOOLS: Set<string> = new Set(["write", "edit"]);
 const READ_TOOLS: Set<string> = new Set(["read"]);

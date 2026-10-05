@@ -4,6 +4,8 @@ import subprocess
 from collections.abc import Mapping
 from pathlib import Path
 
+import pytest
+
 WRAPPER = Path(__file__).parents[2] / "scripts" / "check-modified-code-quality.sh"
 
 
@@ -17,6 +19,7 @@ def run_wrapper(
     bin_dir.mkdir(exist_ok=True)
     checker = bin_dir / "check-code-quality"
     checker.write_text(
+        "#!/bin/sh\n"
         "printf '%s\\n' \"$@\" > args.txt\n"
         + f"printf '%s' {json.dumps(fake_checker_output)}\n"
         + f"exit {checker_status}\n",
@@ -44,7 +47,7 @@ def run_wrapper(
 
 
 def test_passed_check_receives_only_modified_path(tmp_path: Path) -> None:
-    event = {"tool_input": {"path": "tests/app.py"}}
+    event = {"tool_name": "Write", "tool_input": {"path": "tests/app.py"}}
 
     result = run_wrapper(event, tmp_path, fake_checker_output="passed")
 
@@ -54,7 +57,7 @@ def test_passed_check_receives_only_modified_path(tmp_path: Path) -> None:
 
 
 def test_failed_check_reports_violations_as_feedback(tmp_path: Path) -> None:
-    event = {"tool_input": {"path": "tests/app.py"}}
+    event = {"tool_name": "Write", "tool_input": {"path": "tests/app.py"}}
 
     result = run_wrapper(
         event,
@@ -69,7 +72,11 @@ def test_failed_check_reports_violations_as_feedback(tmp_path: Path) -> None:
 
 
 def test_failed_check_opens_circuit_after_repeated_attempts(tmp_path: Path) -> None:
-    event = {"session_id": "session-1", "tool_input": {"path": "tests/app.py"}}
+    event = {
+        "tool_name": "Write",
+        "session_id": "session-1",
+        "tool_input": {"path": "tests/app.py"},
+    }
 
     first = run_wrapper(event, tmp_path, checker_status=1)
     second = run_wrapper(event, tmp_path, checker_status=1)
@@ -89,3 +96,29 @@ def test_missing_path_skips_quality_check(tmp_path: Path) -> None:
     assert result.returncode == 0
     assert result.stdout == ""
     assert not (tmp_path / "args.txt").exists()
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "path", "checker_called"),
+    [
+        ("Read", "README.md", False),
+        ("Other", "README.md", False),
+        ("Write", "README.md", True),
+        ("Edit", "module.py", True),
+        ("Edit", "module.rs", True),
+    ],
+)
+def test_quality_check_runs_only_for_edits(
+    tool_name: str,
+    path: str,
+    checker_called: bool,
+    tmp_path: Path,
+) -> None:
+    event = {"tool_name": tool_name, "tool_input": {"path": path}}
+
+    result = run_wrapper(event, tmp_path)
+
+    assert result.returncode == 0
+    assert (tmp_path / "args.txt").exists() is checker_called
+    if checker_called:
+        assert (tmp_path / "args.txt").read_text(encoding="utf-8") == f"{path}\n"

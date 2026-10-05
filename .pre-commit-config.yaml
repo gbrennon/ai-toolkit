@@ -17,6 +17,15 @@ repos:
 
   - repo: local
     hooks:
+      - id: agent-artifacts
+        name: reject generated agent artifacts
+        entry: python3 scripts/check_agent_artifacts.py --staged
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+  - repo: local
+    hooks:
       - id: pytest
         name: pytest
         entry: uv run pytest --tb=short -q -m "unit or integration"

@@ -23,3 +23,12 @@ Rules for writing readable markdown files: documentation, rule files, and guides
 - Use tables only to compare items or enumerate contracts.
 - Wrap symbols and paths in inline backticks and code blocks in fenced fences.
 - State the prohibition and the replacement behavior together.
+
+## Agent Artifact Policy
+
+- Do not version agent-generated specifications, plans, session state, or
+  transient state files.
+- Keep designs and plans in the session artifact store unless the user
+  explicitly requests a checked-in document.
+- When a Markdown file approaches a limit, split focused content into linked
+  Markdown files before continuing.

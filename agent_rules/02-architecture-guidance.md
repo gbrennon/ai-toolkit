@@ -117,3 +117,26 @@ When reviewing or writing code, treat these as violations:
   adapter
 - Inheritance used to share utility code rather than to model a true subtype
   relationship — refactor to composition
+
+## Application Service Boundaries
+
+- Application services must not depend on inbound application ports.
+- Application services must not import concrete implementations of application
+  ports.
+- Depend on outbound contracts and domain behavior; keep inbound delivery
+  concerns in presentation adapters.
+
+## Implementation File Boundaries
+
+- Python implementation files define one primary class.
+- Rust implementation files define one primary struct or trait.
+
+## Event and Command Handler Boundaries
+
+- Handlers are the inbound application-port adapters.
+- Handlers may depend on inbound application ports.
+- Application services must not depend on handlers or inbound ports.
+- Application services delegate cross-service coordination through commands and
+  events instead of directly calling other application services.
+- Keep handlers, commands, events, and services in focused implementation files.
+- Rust functions in implementation files must be bound to that primary type.

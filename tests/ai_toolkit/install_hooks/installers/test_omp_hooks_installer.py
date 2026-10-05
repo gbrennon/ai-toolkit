@@ -31,7 +31,7 @@ class TestOmpHooksInstaller:
         assert '"check-code-quality"' in content
         assert '"ai-toolkit-hook-circuit-breaker"' in content
         assert '"py"' in content
-        assert '"md"' not in content
+        assert '"md"' in content
 
     def test_install_is_deterministic(self, tmp_path: Path) -> None:
         target = tmp_path / "quality.ts"

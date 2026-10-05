@@ -20,3 +20,28 @@ rules:
       - metavariable-regex:
           metavariable: $MODULE
           regex: "^crate::presentation"
+  - id: application-service-no-inbound-port-dependency
+    languages:
+      - python
+      - rust
+    message: "Application services must not depend on inbound application ports"
+    severity: ERROR
+    paths:
+      include:
+        - "**/application/**/service*.py"
+        - "**/application/**/service*.rs"
+        - "**/application/services/**"
+    pattern-regex: "(?i)(?:application[.:][^\\n]*(?:inbound|input)[^\\n]*(?:port|trait)|(?:inbound|input)[^\\n]*(?:port|trait))"
+
+  - id: application-service-no-concrete-port-implementation
+    languages:
+      - python
+      - rust
+    message: "Application services must not depend on concrete port implementations"
+    severity: ERROR
+    paths:
+      include:
+        - "**/application/**/service*.py"
+        - "**/application/**/service*.rs"
+        - "**/application/services/**"
+    pattern-regex: "(?i)(?:application[.:][^\\n]*(?:infrastructure|adapter|implementation)|(?:infrastructure|adapter|implementation)[^\\n]*)"

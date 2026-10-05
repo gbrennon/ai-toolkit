@@ -1,0 +1,11 @@
+.agents/
+.omp/
+.pi/
+.claude/
+.cursor/
+.worktrees/
+docs/superpowers/specs/
+docs/superpowers/plans/
+plans/
+agent-state/
+session-state/
