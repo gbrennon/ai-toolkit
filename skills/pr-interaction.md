@@ -82,22 +82,28 @@ for complete review content and freshness verification.
 Read the complete review before acting. Classify each finding and suggestion by
 correctness, scope, and risk.
 
-For a valuable deferred suggestion, post one batched command to the pull request:
+For a valuable deferred suggestion, post one batched command in a pull-request comment:
 
 ```text
-create issue <suggestion-id-prefix-1> , <suggestion-id-prefix-2>
+create issue <ids>
 ```
 
-For an invalid, harmful, duplicate, or irrelevant suggestion, post:
+For an invalid, harmful, duplicate, or irrelevant suggestion, post one batched
+command in a pull-request comment:
 
 ```text
-dismiss <suggestion-id-prefix-1> , <suggestion-id-prefix-2>
+dismiss <ids>
 ```
+
+Here, `<ids>` is the comma-separated review suggestion list, for example
+`<id1> , <id2> , <id3>`. Use exactly one of these command forms for every
+suggestion. Never invoke an issue creation command manually and never create or
+dismiss suggestions outside the pull-request comment command.
 
 Verify the command outcome in the pull-request comments and issue list. If the
-reviewer command loop does not process the command within the documented wait,
-create the tracking issues directly through the selected forge and link their
-numbers in a pull-request comment. Do not create duplicate issues.
+command is not processed within the documented wait, keep the command comment
+as the recorded triage decision and report the unprocessed state. Do not use a
+direct issue-creation fallback and do not create duplicate issues.
 
 ## Pull-request lifecycle operations
 
