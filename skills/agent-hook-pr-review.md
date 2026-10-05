@@ -1,75 +1,53 @@
 ---
 name: agent-hook-pr-review
-summary: Centralized agent hook for listening to PR review events and triggering appropriate responses
+summary: Polls pull-request reviews and reports a review for the current head
 ---
 
 # Agent Hook: PR Review Listener
 
-This is a centralized agent hook designed to monitor PR review activity and trigger automated responses based on detected events. It replaces manual checks and inefficient tools like `uv run fetch-pr-review`, providing a clean, extensible way to react to changes in the pull request lifecycle.
+This skill documents the installed `agent-hook-pr-review` command. The command
+polls a forge review endpoint and reports the latest review that matches the
+pull-request head captured when polling begins.
 
-## Core Functionality
+## Usage
 
-The hook monitors three key types of events:
-
-1. **New review posted** (`pull_request_review`)
-2. **Review updated** (`pull_request_review`)
-3. **PR status changed** (`check_run`, `status`)
-
-When any of these occur, it:
-- Parses the event data efficiently
-- Determines if action is required
-- Triggers the appropriate response via other skills
-- Maintains context across iterations
-
-## How It Works
-
-```mermaid
-graph TD
-    A[Listen for PR Events] --> B{Event Type?}
-    B -->|New Review| C[Parse Review Status]
-    B -->|Review Updated| D[Check for Changes]
-    B -->|Status Change| E[Verify CI State]
-
-    C --> F[Trigger repo-maintenance]
-    D --> G[Update Local Cache]
-    E --> H[Notify Developer if Failed]
-
-    F --> I[Continue Loop]
-    G --> J[Re-trigger Analysis]
-    H --> K[Send Alert]
-```
-
-## Usage Pattern
-
-Run the hook after opening or pushing a pull request:
+The command is defined by this repository's `agent-hook-pr-review` project
+script. From a checkout, run it through the repository environment:
 
 ```bash
 uv run agent-hook-pr-review <PR-URL | owner/repo/number> --listen
 ```
 
-The hook polls the forge reviews endpoint, refreshes the pull-request head,
-filters out reviews for older commits, and waits with capped incremental
-backoff: `30s`, `60s`, `120s`, `240s`, then `300s`. Without `--listen`, it
-checks once and exits when no current-head review exists.
+To install the repository CLI onto `PATH`, run:
 
-## Integration with Existing Skills
+```bash
+make install-cli
+agent-hook-pr-review <PR-URL | owner/repo/number> --listen
+```
 
-`repo-maintenance.md` starts this hook after opening or updating a pull request.
-When the hook receives a current-head review, the maintenance workflow fetches
-the complete review and continues its triage loop.
+Run without `--listen` to check once:
 
-The hook only waits for and reports review data. It does not create issues,
-modify code, or merge pull requests.
+```bash
+uv run agent-hook-pr-review <PR-URL | owner/repo/number>
+```
+
+The command prints the matching review as JSON. It does not modify code, create
+issues, update pull requests, or merge branches.
 
 ## Polling Contract
 
-- The hook fetches the pull-request head before checking reviews.
+- The command reads the current pull-request head before polling begins.
 - Reviews for older commits do not satisfy the wait.
-- `--listen` enables polling until a current-head review appears.
+- `--listen` continues until a current-head review appears.
 - Polling uses capped incremental backoff: `30s`, `60s`, `120s`, `240s`, then
   `300s`.
+- The command exits after one check when `--listen` is omitted.
 
-## Operational Guidance
+## Maintenance Integration
 
-Start the hook after opening the pull request and restart it after pushing a new
-head. Use the one-shot mode when a caller needs to check once without waiting.
+`repo-maintenance` starts this hook after opening or updating a pull request.
+When the command reports a review, use `pr-interaction` to retrieve the
+complete review, inspect its freshness, and perform review triage.
+
+The hook does not implement webhook events, CI monitoring, caching,
+`.agenthookrc` configuration, or automated maintenance actions.
