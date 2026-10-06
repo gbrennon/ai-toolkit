@@ -47,7 +47,7 @@ def test_maintenance_requires_lifecycle_notifications() -> None:
         "notifications for the `question`, `complete`, and `error` events" in SKILL
     )
     assert "agent-notify" in SKILL
-    assert "visible tmux pane" in SKILL
+    assert "visible tmux window" in SKILL
 
 
 def test_maintenance_requires_review_triage_and_ci() -> None:
