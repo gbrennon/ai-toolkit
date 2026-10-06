@@ -2,14 +2,17 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import subprocess
+import pytest
+
+import ai_toolkit.agent_notify.main as notification_module
 
 from ai_toolkit.agent_notify.main import (
-    Notification,
-    TmuxIdentity,
     format_notification_body,
     notification_from_tmux,
     send_notification,
 )
+from ai_toolkit.agent_notify.notification import Notification
+from ai_toolkit.agent_notify.tmux_identity import TmuxIdentity
 
 
 def test_notification_body_contains_agent_event_and_tmux_window_identity() -> None:
@@ -79,6 +82,20 @@ def test_notification_from_tmux_reads_session_window_index_and_name() -> None:
         window_name="ws-feat-autonomous-agent-notifications",
     )
 
+def test_notification_from_tmux_uses_none_identity_when_tmux_is_unavailable() -> None:
+    def failing_run(
+        args: Sequence[str], **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
+        raise OSError("tmux unavailable")
+
+    identity = notification_from_tmux(
+        cwd=Path("/repo"),
+        environment={"TMUX": "/tmp/tmux"},
+        run=failing_run,
+    )
+
+    assert identity == TmuxIdentity("none", "none", "none")
+
 
 def test_notification_from_tmux_uses_none_identity_outside_tmux() -> None:
     identity = notification_from_tmux(
@@ -146,3 +163,26 @@ def test_send_notification_reports_missing_delivery_command() -> None:
     )
 
     assert delivered is False
+
+
+def test_main_returns_failure_when_notification_delivery_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_identity(*, cwd: Path) -> TmuxIdentity:
+        return TmuxIdentity("none", "none", "none")
+
+    def fake_send(notification: Notification) -> bool:
+        return False
+
+    monkeypatch.setattr(
+        notification_module,
+        "notification_from_tmux",
+        fake_identity,
+    )
+    monkeypatch.setattr(notification_module, "send_notification", fake_send)
+
+    result = notification_module.main(
+        ["omp", "error", "--cwd", "/repo", "--message", "task failed"]
+    )
+
+    assert result == 1
