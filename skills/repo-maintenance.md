@@ -42,7 +42,7 @@ requesting confirmation for each branch, commit, test, push, or review action.
 - Stage explicit paths and exclude session artifacts, credentials, and generated state.
 - Never ignore a quality-tool finding on a modified file.
 - Never merge without a fresh approval review.
-- Never merge when CI is failing, pending, unavailable, or missing.
+- Never merge when configured CI is failing, pending, or unavailable.
 - Use the repository's default merge strategy through the forge.
 
 ## Workflow
@@ -149,7 +149,8 @@ Merge only when all of these conditions hold:
 2. Every finding is resolved or explicitly justified.
 3. Every suggestion is applied, dismissed with a reason, or linked to a tracking issue.
 4. Every configured CI check, workflow, and action is green.
-5. The PR branch is synchronized with the latest default branch.
+5. When no CI workflows are configured, local quality gates satisfy this condition.
+6. The PR branch is synchronized with the latest default branch.
 
 Before merging, inspect the selected forge CLI:
 
@@ -160,7 +161,9 @@ Before merging, inspect the selected forge CLI:
 
 Use the merge command and branch-deletion flag documented there. Do not assume
 flags are portable between forge CLIs. Forge-level `mergeable` is not permission
-to merge when CI is missing or unverified.
+to merge when configured CI is missing or unverified. An empty CI status response
+is acceptable only when no CI workflows are configured and local quality gates
+have passed.
 
 ## Step 6 — Track post-merge workflows
 
