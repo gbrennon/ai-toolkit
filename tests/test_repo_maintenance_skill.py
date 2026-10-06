@@ -90,12 +90,15 @@ def test_pr_interaction_owns_review_queries_and_triage() -> None:
 
 
 
-def test_git_guidance_allows_authorized_forge_merges() -> None:
-    assert "Never push directly to `main` or merge locally into `main`." in GIT_GUIDANCE
-    assert "Authorized autonomous maintenance" in GIT_GUIDANCE
-    assert "merge an approved pull request through\n  the forge" in GIT_GUIDANCE
-    assert "A forge PR merge targeting `main` is not a local merge" in GIT_GUIDANCE
-    assert "review, CI, and synchronization gates pass" in GIT_GUIDANCE
+def test_git_guidance_allows_authorized_forge_merges_without_main_pushes() -> None:
+    assert "Never push directly to `main`." in GIT_GUIDANCE
+    assert "Never merge locally into `main`." in GIT_GUIDANCE
+    assert "Agents MAY push feature branches" in GIT_GUIDANCE
+    assert "Agents MAY inspect pull request reviews" in GIT_GUIDANCE
+    assert "Agents MAY post documented review-triage comments" in GIT_GUIDANCE
+    assert "Agents MAY merge an approved pull request through the forge" in GIT_GUIDANCE
+    assert "A forge pull request merge targeting `main` is not a local merge" in GIT_GUIDANCE
+    assert "default forge merge strategy" in GIT_GUIDANCE
 
 
 def test_maintenance_allows_empty_ci_when_no_workflows_are_configured() -> None:
