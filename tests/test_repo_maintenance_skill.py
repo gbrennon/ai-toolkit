@@ -57,7 +57,7 @@ def test_maintenance_requires_review_triage_and_ci() -> None:
     assert "Never\nmanually invoke an issue-creation command" in SKILL
     assert "direct issue-creation\nfallback" in SKILL
     assert "Every configured CI check" in SKILL
-    assert "CI is failing, pending, unavailable, or missing" in SKILL
+    assert "configured CI is failing, pending, or unavailable" in SKILL
 
 
 def test_maintenance_tracks_post_merge_failures_and_cleanup() -> None:
@@ -94,9 +94,14 @@ def test_git_guidance_allows_authorized_forge_merges() -> None:
     assert "Never push directly to `main` or merge locally into `main`." in GIT_GUIDANCE
     assert "Authorized autonomous maintenance" in GIT_GUIDANCE
     assert "merge an approved pull request through\n  the forge" in GIT_GUIDANCE
+    assert "A forge PR merge targeting `main` is not a local merge" in GIT_GUIDANCE
     assert "review, CI, and synchronization gates pass" in GIT_GUIDANCE
 
 
+def test_maintenance_allows_empty_ci_when_no_workflows_are_configured() -> None:
+    assert "When no CI workflows are configured" in SKILL
+    assert "local quality gates" in SKILL
+    assert "empty CI status response" in SKILL
 
 def test_finishing_skill_uses_forge_merge_only() -> None:
     assert "Merge approved pull request through the forge" in FINISHING
