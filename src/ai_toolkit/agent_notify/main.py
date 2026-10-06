@@ -25,11 +25,11 @@ class _CommandRunner(Protocol):
 
 @dataclass(frozen=True)
 class TmuxIdentity:
-    """Identifies the tmux pane that owns an agent process."""
+    """Identifies the tmux window that owns an agent process."""
 
     session_name: str
-    pane_id: str
-    pane_title: str
+    window_index: str
+    window_name: str
 
 
 @dataclass(frozen=True)
@@ -44,7 +44,7 @@ class Notification:
 
 
 def _none_identity() -> TmuxIdentity:
-    return TmuxIdentity(session_name="none", pane_id="none", pane_title="none")
+    return TmuxIdentity(session_name="none", window_index="none", window_name="none")
 
 
 def _run_tmux_command(
@@ -59,7 +59,7 @@ def _run_tmux_command(
             "display-message",
             "-p",
             "-F",
-            "#{session_name}|#{pane_id}|#{pane_title}",
+            "#{session_name}|#{window_index}|#{window_name}",
         ],
         cwd=cwd,
         env=dict(environment),
@@ -73,13 +73,13 @@ def _identity_from_tmux_output(output: str) -> TmuxIdentity:
     fields = output.strip().split("|", maxsplit=2)
     if len(fields) != 3:
         return _none_identity()
-    session_name, pane_id, pane_title = fields
-    if not session_name or not pane_id or not pane_title:
+    session_name, window_index, window_name = fields
+    if not session_name or not window_index or not window_name:
         return _none_identity()
     return TmuxIdentity(
         session_name=session_name,
-        pane_id=pane_id,
-        pane_title=pane_title,
+        window_index=window_index,
+        window_name=window_name,
     )
 
 
@@ -89,7 +89,7 @@ def notification_from_tmux(
     environment: Mapping[str, str] | None = None,
     run: _CommandRunner | None = None,
 ) -> TmuxIdentity:
-    """Read the current tmux session and pane identity, or return explicit fallbacks."""
+    """Read the current tmux session and window identity, or return fallbacks."""
     active_environment = os.environ if environment is None else environment
     if "TMUX" not in active_environment:
         return _none_identity()
@@ -104,8 +104,8 @@ def format_notification_body(notification: Notification) -> str:
     return (
         f"agent={notification.agent} event={notification.event} "
         f"session={notification.identity.session_name} "
-        f"pane_id={notification.identity.pane_id} "
-        f"pane_title={notification.identity.pane_title} "
+        f"window_index={notification.identity.window_index} "
+        f"window_name={notification.identity.window_name} "
         f"cwd={notification.cwd} message={notification.message}"
     )
 
