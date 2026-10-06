@@ -75,7 +75,7 @@ class TestPiHooksInstaller:
         assert 'pi.on("agent_error"' not in content
         assert 'pi.on("agent_end"' not in content
         assert '"agent-notify"' in content
-        assert "pane_id" not in content
+        assert "window_index" not in content
 
     def test_install_removes_legacy_stop_notification_only(
         self,
