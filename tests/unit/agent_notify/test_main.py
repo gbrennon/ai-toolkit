@@ -12,15 +12,15 @@ from ai_toolkit.agent_notify.main import (
 )
 
 
-def test_notification_body_contains_agent_event_and_tmux_identity() -> None:
+def test_notification_body_contains_agent_event_and_tmux_window_identity() -> None:
     notification = Notification(
         agent="omp",
         event="question",
         cwd=Path("/repo"),
         identity=TmuxIdentity(
             session_name="ai-toolkit",
-            pane_id="%42",
-            pane_title="build",
+            window_index="2",
+            window_name="ws-feat-autonomous-agent-notifications",
         ),
         message="Scope is ambiguous",
     )
@@ -28,16 +28,17 @@ def test_notification_body_contains_agent_event_and_tmux_identity() -> None:
     body = format_notification_body(notification)
 
     assert body == (
-        "agent=omp event=question session=ai-toolkit pane_id=%42 "
-        "pane_title=build cwd=/repo message=Scope is ambiguous"
+        "agent=omp event=question session=ai-toolkit window_index=2 "
+        "window_name=ws-feat-autonomous-agent-notifications cwd=/repo "
+        "message=Scope is ambiguous"
     )
 
 
-def test_notification_from_tmux_reads_session_pane_id_and_pane_title() -> None:
+def test_notification_from_tmux_reads_session_window_index_and_name() -> None:
     completed = subprocess.CompletedProcess(
         args=["tmux"],
         returncode=0,
-        stdout="ai-toolkit|%42|build\n",
+        stdout="ai-toolkit|2|ws-feat-autonomous-agent-notifications\n",
     )
     calls: list[tuple[Sequence[str], dict[str, object]]] = []
 
@@ -60,7 +61,7 @@ def test_notification_from_tmux_reads_session_pane_id_and_pane_title() -> None:
                 "display-message",
                 "-p",
                 "-F",
-                "#{session_name}|#{pane_id}|#{pane_title}",
+                "#{session_name}|#{window_index}|#{window_name}",
             ],
             {
                 "cwd": Path("/repo"),
@@ -73,8 +74,8 @@ def test_notification_from_tmux_reads_session_pane_id_and_pane_title() -> None:
     ]
     assert identity == TmuxIdentity(
         session_name="ai-toolkit",
-        pane_id="%42",
-        pane_title="build",
+        window_index="2",
+        window_name="ws-feat-autonomous-agent-notifications",
     )
 
 
@@ -86,8 +87,8 @@ def test_notification_from_tmux_uses_none_identity_outside_tmux() -> None:
 
     assert identity == TmuxIdentity(
         session_name="none",
-        pane_id="none",
-        pane_title="none",
+        window_index="none",
+        window_name="none",
     )
 
 
@@ -96,7 +97,7 @@ def test_send_notification_delivers_formatted_body() -> None:
         agent="pi",
         event="complete",
         cwd=Path("/repo"),
-        identity=TmuxIdentity("session", "%1", "editor"),
+        identity=TmuxIdentity("session", "2", "ws-feat"),
         message="task complete",
     )
     calls: list[tuple[Sequence[str], dict[str, object]]] = []
@@ -120,8 +121,8 @@ def test_send_notification_delivers_formatted_body() -> None:
                 "notify-send",
                 "pi complete",
                 (
-                    "agent=pi event=complete session=session pane_id=%1 "
-                    "pane_title=editor cwd=/repo message=task complete"
+                    "agent=pi event=complete session=session window_index=2 "
+                    "window_name=ws-feat cwd=/repo message=task complete"
                 ),
             ],
             {"check": False},
