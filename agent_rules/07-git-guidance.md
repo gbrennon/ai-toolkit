@@ -1,5 +1,7 @@
 # Git Guidance
 
-- NEVER merge any branch into `main`; the user will open a pull request.
+- Never push directly to `main` or merge locally into `main`.
+- Authorized autonomous maintenance MAY merge an approved pull request through
+  the forge after review, CI, and synchronization gates pass.
+- Use git operations required by an authorized maintenance workflow.
 - Never skip hooks.
-- Only use git when requested.
