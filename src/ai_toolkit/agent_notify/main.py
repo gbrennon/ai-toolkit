@@ -100,14 +100,21 @@ def notification_from_tmux(
 
 
 def format_notification_body(notification: Notification) -> str:
-    """Format notification fields into a stable, searchable desktop message."""
-    return (
-        f"agent={notification.agent} event={notification.event} "
-        f"session={notification.identity.session_name} "
-        f"window_index={notification.identity.window_index} "
-        f"window_name={notification.identity.window_name} "
-        f"cwd={notification.cwd} message={notification.message}"
+    """Format notification details into a readable multiline desktop body."""
+    return "\n".join(
+        (
+            f"window={notification.identity.window_index}:"
+            f"{notification.identity.window_name}",
+            f"session={notification.identity.session_name}",
+            f"cwd={notification.cwd}",
+            f"message={notification.message}",
+        )
     )
+
+
+def format_notification_title(notification: Notification) -> str:
+    """Format the concise notification header from the agent and event."""
+    return f"{notification.agent} {notification.event}"
 
 
 def send_notification(
@@ -123,7 +130,7 @@ def send_notification(
     result = active_run(
         [
             "notify-send",
-            f"{notification.agent} {notification.event}",
+            format_notification_title(notification),
             format_notification_body(notification),
         ],
         check=False,
