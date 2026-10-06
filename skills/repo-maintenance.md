@@ -15,8 +15,25 @@ pull request. Continue until the pull request is approved, every suggestion is
 triaged, and all merge preconditions are verified.
 
 The workflow is autonomous for routine branch creation, commits, pushes, pull
-requests, review comments, and issue tracking. Never push or merge locally into
-the default branch.
+requests, review comments, issue tracking, and authorized forge merges. It never
+pushes directly to or merges locally into the default branch. When the user
+authorizes autonomous maintenance, it may merge an approved pull request
+through the forge after review, CI, and synchronization gates pass.
+
+## Autonomous Scope and Notifications
+
+Start from the user's stated scope and execute routine repository work without
+requesting confirmation for each branch, commit, test, push, or review action.
+
+- Do not ask for routine confirmation.
+- Ask a question only when scope is materially missing or contradictory.
+- Send notifications for the `question`, `complete`, and `error` events through
+  `agent-notify`.
+- Include the agent, event, cwd, tmux session, pane id, and pane title.
+- Always notify, including the visible tmux pane.
+- Send the `complete` event only after the current task reaches its terminal
+  outcome.
+- Send error when a task or required gate reaches a failure outcome.
 
 ## Guardrails
 
