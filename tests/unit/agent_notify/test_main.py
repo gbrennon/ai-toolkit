@@ -28,8 +28,9 @@ def test_notification_body_contains_agent_event_and_tmux_window_identity() -> No
     body = format_notification_body(notification)
 
     assert body == (
-        "agent=omp event=question session=ai-toolkit window_index=2 "
-        "window_name=ws-feat-autonomous-agent-notifications cwd=/repo "
+        "window=2:ws-feat-autonomous-agent-notifications\n"
+        "session=ai-toolkit\n"
+        "cwd=/repo\n"
         "message=Scope is ambiguous"
     )
 
@@ -120,10 +121,10 @@ def test_send_notification_delivers_formatted_body() -> None:
             [
                 "notify-send",
                 "pi complete",
-                (
-                    "agent=pi event=complete session=session window_index=2 "
-                    "window_name=ws-feat cwd=/repo message=task complete"
-                ),
+                    "window=2:ws-feat\n"
+                    "session=session\n"
+                    "cwd=/repo\n"
+                    "message=task complete"
             ],
             {"check": False},
         )
