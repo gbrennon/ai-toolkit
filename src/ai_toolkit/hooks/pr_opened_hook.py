@@ -8,7 +8,7 @@ import os
 import subprocess
 import json
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional
 
 class PROpenedHook:
     """

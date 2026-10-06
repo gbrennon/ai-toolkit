@@ -15,8 +15,25 @@ pull request. Continue until the pull request is approved, every suggestion is
 triaged, and all merge preconditions are verified.
 
 The workflow is autonomous for routine branch creation, commits, pushes, pull
-requests, review comments, and issue tracking. Never push or merge locally into
-the default branch.
+requests, review comments, issue tracking, and authorized forge merges. It never
+pushes directly to or merges locally into the default branch. When the user
+authorizes autonomous maintenance, it may merge an approved pull request
+through the forge after review, CI, and synchronization gates pass.
+
+## Autonomous Scope and Notifications
+
+Start from the user's stated scope and execute routine repository work without
+requesting confirmation for each branch, commit, test, push, or review action.
+
+- Do not ask for routine confirmation.
+- Ask a question only when scope is materially missing or contradictory.
+- Send notifications for the `question`, `complete`, and `error` events through
+  `agent-notify`.
+- Include the agent, event, cwd, tmux session, window index, and window name.
+- Always notify, including the visible tmux window.
+- Send the `complete` event only after the current task reaches its terminal
+  outcome.
+- Send error when a task or required gate reaches a failure outcome.
 
 ## Guardrails
 
@@ -25,7 +42,7 @@ the default branch.
 - Stage explicit paths and exclude session artifacts, credentials, and generated state.
 - Never ignore a quality-tool finding on a modified file.
 - Never merge without a fresh approval review.
-- Never merge when CI is failing, pending, unavailable, or missing.
+- Never merge when configured CI is failing, pending, or unavailable.
 - Use the repository's default merge strategy through the forge.
 
 ## Workflow
@@ -132,7 +149,8 @@ Merge only when all of these conditions hold:
 2. Every finding is resolved or explicitly justified.
 3. Every suggestion is applied, dismissed with a reason, or linked to a tracking issue.
 4. Every configured CI check, workflow, and action is green.
-5. The PR branch is synchronized with the latest default branch.
+5. When no CI workflows are configured, local quality gates satisfy this condition.
+6. The PR branch is synchronized with the latest default branch.
 
 Before merging, inspect the selected forge CLI:
 
@@ -143,7 +161,9 @@ Before merging, inspect the selected forge CLI:
 
 Use the merge command and branch-deletion flag documented there. Do not assume
 flags are portable between forge CLIs. Forge-level `mergeable` is not permission
-to merge when CI is missing or unverified.
+to merge when configured CI is missing or unverified. An empty CI status response
+is acceptable only when no CI workflows are configured and local quality gates
+have passed.
 
 ## Step 6 — Track post-merge workflows
 
