@@ -5,42 +5,11 @@ import os
 import shutil
 import subprocess
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
 
-
-class _CommandRunner(Protocol):
-    def __call__(
-        self,
-        args: Sequence[str],
-        *,
-        cwd: str | Path | None = None,
-        env: Mapping[str, str] | None = None,
-        capture_output: bool = False,
-        text: bool | None = None,
-        check: bool = False,
-    ) -> subprocess.CompletedProcess[str]: ...
-
-
-@dataclass(frozen=True)
-class TmuxIdentity:
-    """Identifies the tmux window that owns an agent process."""
-
-    session_name: str
-    window_index: str
-    window_name: str
-
-
-@dataclass(frozen=True)
-class Notification:
-    """Describes one agent lifecycle notification."""
-
-    agent: str
-    event: str
-    cwd: Path
-    identity: TmuxIdentity
-    message: str
+from ai_toolkit.agent_notify.command_runner import _CommandRunner
+from ai_toolkit.agent_notify.notification import Notification
+from ai_toolkit.agent_notify.tmux_identity import TmuxIdentity
 
 
 def _none_identity() -> TmuxIdentity:
@@ -93,7 +62,10 @@ def notification_from_tmux(
     active_environment = os.environ if environment is None else environment
     if "TMUX" not in active_environment:
         return _none_identity()
-    result = _run_tmux_command(cwd, active_environment, run)
+    try:
+        result = _run_tmux_command(cwd, active_environment, run)
+    except OSError:
+        return _none_identity()
     if result.returncode != 0:
         return _none_identity()
     return _identity_from_tmux_output(result.stdout)
@@ -157,8 +129,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         identity=notification_from_tmux(cwd=arguments.cwd),
         message=arguments.message,
     )
-    send_notification(notification)
-    return 0
+    return 0 if send_notification(notification) else 1
 
 
 if __name__ == "__main__":
