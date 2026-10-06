@@ -29,8 +29,8 @@ requesting confirmation for each branch, commit, test, push, or review action.
 - Ask a question only when scope is materially missing or contradictory.
 - Send notifications for the `question`, `complete`, and `error` events through
   `agent-notify`.
-- Include the agent, event, cwd, tmux session, pane id, and pane title.
-- Always notify, including the visible tmux pane.
+- Include the agent, event, cwd, tmux session, window index, and window name.
+- Always notify, including the visible tmux window.
 - Send the `complete` event only after the current task reaches its terminal
   outcome.
 - Send error when a task or required gate reaches a failure outcome.
