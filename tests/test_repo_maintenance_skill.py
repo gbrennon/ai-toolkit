@@ -2,102 +2,117 @@ from pathlib import Path
 
 
 SKILL = Path("skills/repo-maintenance.md").read_text()
+PR_INTERACTION = Path("skills/pr-interaction.md").read_text()
+GIT_GUIDANCE = Path("agent_rules/07-git-guidance.md").read_text()
+FINISHING = Path("skills/finishing-a-development-branch.md").read_text()
 
 
-def test_skill_uses_remote_appropriate_forge_cli():
-    assert "forge-detect --cli" in SKILL
-    assert "tea pr" not in SKILL
-    assert "gh" in SKILL
-    assert "fj" in SKILL
+def test_maintenance_delegates_forge_operations() -> None:
+    assert "pr-interaction" in SKILL
+    assert "forge-specific pull-request operations" in SKILL
+    assert "forge-specific command details" not in SKILL
 
 
-def test_skill_requires_post_merge_worktree_cleanup():
-    assert "git worktree remove" in SKILL
-    assert "git worktree prune" in SKILL
-    assert "current cwd" in SKILL
-
-
-def test_skill_tracks_post_merge_ci_retries_and_investigates_persistent_failure():
-    assert "After merging" in SKILL
-    assert "terminal" in SKILL
-    assert "rerun" in SKILL
-    assert "two additional" in SKILL
-    assert "logs" in SKILL
-    assert "investigate" in SKILL
-    assert "follow-up" in SKILL
-    assert "fix" in SKILL
-
-
-def test_skill_autonomously_pushes_and_opens_missing_pr():
-    assert "autonomous" in SKILL
-    assert "If no PR exists" in SKILL
-    assert "push" in SKILL
-    assert "open the PR" in SKILL
-    assert "Do not pause for user confirmation" in SKILL
-
-
-def test_skill_requires_expressive_pr_scope_description():
-    assert "expressive" in SKILL
-    assert "Motivation" in SKILL
-    assert "Changes" in SKILL
-    assert "Validation" in SKILL
-    assert "Out of scope" in SKILL
-
-
-def test_skill_defines_reasoned_review_commands():
-    assert "create issue <suggestion-id-prefix" in SKILL
-    assert "dismiss <suggestion-id-prefix" in SKILL
-    assert "prefix" in SKILL
-    assert "Do not create an issue for every suggestion" in SKILL
-    assert "Do not dismiss a suggestion merely because it is out of scope" in SKILL
-    assert "reason" in SKILL.lower()
-
-
-def test_skill_requires_pre_pr_worktree_synchronization():
+def test_maintenance_requires_synchronization_before_pr_work() -> None:
     assert "git fetch origin" in SKILL
     assert "DEFAULT_BRANCH=" in SKILL
     assert "git merge-base --is-ancestor" in SKILL
-    assert "git status --porcelain            # MUST still be empty after rebase" in SKILL
+    assert "git status --porcelain" in SKILL
     assert "git branch --show-current" in SKILL
     assert "git worktree list" in SKILL
+    assert "Before opening or updating a pull request" in SKILL
+    assert "advances while the PR is open" in SKILL
 
 
-def test_skill_places_synchronization_gate_before_push_instruction():
-    sync_gate = SKILL.index("Confirm the worktree and branch are in sync")
-    push_instruction = SKILL.index("- **Push the feature branch**")
-
-    assert sync_gate < push_instruction
-
-
-def test_skill_source_has_no_merge_conflict_markers():
-    assert "<<<<<<<" not in SKILL
-    assert "=======" not in SKILL
-    assert ">>>>>>>" not in SKILL
+def test_maintenance_defines_autonomous_pr_entry() -> None:
+    assert "autonomous" in SKILL
+    assert "If none exists" in SKILL
+    assert "push the\nfeature branch" in SKILL
+    assert "open one against the default branch" in SKILL
+    assert "motivation" in SKILL
+    assert "validation" in SKILL
+    assert "out-of-scope" in SKILL
 
 
-def test_skill_requires_help_driven_merge_commands():
-    assert '"$FORGE_CLI" --help' in SKILL
-    assert '"$FORGE_CLI" pr --help' in SKILL
-    assert "branch-deletion flag" in SKILL
-    assert "selected forge's API adapter" in SKILL
-    assert "$FORGE_CLI pr merge <number> --delete" not in SKILL
+def test_maintenance_defines_autonomous_scope_boundary() -> None:
+    assert "Start from the user's stated scope" in SKILL
+    assert "Do not ask for routine confirmation" in SKILL
+    assert (
+        "Ask a question only when scope is materially missing or contradictory" in SKILL
+    )
 
 
-def test_skill_falls_back_to_remote_based_cli_selection():
-    assert "command -v forge-detect" in SKILL
-    assert 'REMOTE_NAME="${REMOTE:-$(git config --get "branch.$(git branch --show-current).remote"' in SKILL
-    assert 'git remote | { IFS= read -r first; printf \'%s\' "$first"; }' in SKILL
-    assert "*github.com*) FORGE_CLI=gh" in SKILL
-    assert "*codeberg.org*|*forgejo*|*gitea*) FORGE_CLI=fj" in SKILL
-    assert 'command -v "$FORGE_CLI"' in SKILL
-    assert "uv run forge-detect --cli" not in SKILL
+def test_maintenance_requires_lifecycle_notifications() -> None:
+    assert (
+        "notifications for the `question`, `complete`, and `error` events" in SKILL
+    )
+    assert "agent-notify" in SKILL
+    assert "visible tmux window" in SKILL
 
 
-def test_skill_requires_help_driven_cli_subcommands():
-    assert '"$FORGE_CLI" --help' in SKILL
-    assert '"$FORGE_CLI" pr --help' in SKILL
-    assert "supported API adapter" in SKILL
-    assert "version-specific flags" in SKILL
-    assert "gh pr checks <number>" not in SKILL
-    assert "glab ci status" not in SKILL
-    assert "$FORGE_CLI pulls <number>" not in SKILL
+def test_maintenance_requires_review_triage_and_ci() -> None:
+    assert "every finding and suggestion" in SKILL
+    assert "Comment `create issue <ids>` on the PR." in SKILL
+    assert "Comment `dismiss <ids>` on the PR." in SKILL
+    assert "Never\nmanually invoke an issue-creation command" in SKILL
+    assert "direct issue-creation\nfallback" in SKILL
+    assert "Every configured CI check" in SKILL
+    assert "configured CI is failing, pending, or unavailable" in SKILL
+
+
+def test_maintenance_tracks_post_merge_failures_and_cleanup() -> None:
+    assert "After merging" in SKILL
+    assert "terminal state" in SKILL
+    assert "two additional" in SKILL
+    assert "inspect logs" in SKILL
+    assert "follow-up issue" in SKILL
+    assert "worktree" in SKILL
+    assert "prune" in SKILL
+
+
+def test_pr_interaction_owns_forge_selection_and_merge_commands() -> None:
+    assert "forge-detect --cli" in PR_INTERACTION
+    assert 'command -v "$FORGE_CLI"' in PR_INTERACTION
+    assert '"$FORGE_CLI" --help' in PR_INTERACTION
+    assert '"$FORGE_CLI" pr --help' in PR_INTERACTION
+    assert "API\nadapter" in PR_INTERACTION
+    assert "branch-deletion flag" in PR_INTERACTION
+
+
+def test_pr_interaction_owns_review_queries_and_triage() -> None:
+    assert "Pull-request reviews" in PR_INTERACTION
+    assert "Commit statuses and workflow runs" in PR_INTERACTION
+    assert "create issue <ids>" in PR_INTERACTION
+    assert "dismiss <ids>" in PR_INTERACTION
+    assert "`<id1> , <id2> , <id3>`" in PR_INTERACTION
+    assert "Never invoke an issue" in PR_INTERACTION
+    assert "do not create duplicate issues" in PR_INTERACTION
+
+
+
+def test_git_guidance_allows_authorized_forge_merges_without_main_pushes() -> None:
+    assert "Never push directly to `main`." in GIT_GUIDANCE
+    assert "Never merge locally into `main`." in GIT_GUIDANCE
+    assert "Agents MAY push feature branches" in GIT_GUIDANCE
+    assert "Agents MAY inspect pull request reviews" in GIT_GUIDANCE
+    assert "Agents MAY post documented review-triage comments" in GIT_GUIDANCE
+    assert "Agents MAY merge an approved pull request through the forge" in GIT_GUIDANCE
+    assert "A forge pull request merge targeting `main` is not a local merge" in GIT_GUIDANCE
+    assert "default forge merge strategy" in GIT_GUIDANCE
+
+
+def test_maintenance_allows_empty_ci_when_no_workflows_are_configured() -> None:
+    assert "When no CI workflows are configured" in SKILL
+    assert "local quality gates" in SKILL
+    assert "empty CI status response" in SKILL
+
+def test_finishing_skill_uses_forge_merge_only() -> None:
+    assert "Merge approved pull request through the forge" in FINISHING
+    assert "pr-interaction" in FINISHING
+    assert "git merge <feature-branch>" not in FINISHING
+    assert "Merge locally" not in FINISHING
+def test_skill_sources_have_no_merge_conflict_markers() -> None:
+    for skill in (SKILL, PR_INTERACTION, GIT_GUIDANCE):
+        assert "<<<<<<<" not in skill
+        assert "=======" not in skill
+        assert ">>>>>>>" not in skill

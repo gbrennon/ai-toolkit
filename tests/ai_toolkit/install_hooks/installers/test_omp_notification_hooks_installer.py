@@ -4,6 +4,7 @@ import pytest
 
 from ai_toolkit.install_hooks.installers.omp_notification_hooks_installer import (
     OMP_NOTIFICATION_HOOK_PATH,
+    OMP_NOTIFICATION_HOOK_CONTENT,
     OmpNotificationHooksInstaller,
 )
 
@@ -16,36 +17,30 @@ class TestOmpNotificationHooksInstaller:
 
         assert installer.hook_path == OMP_NOTIFICATION_HOOK_PATH
 
-    def test_install_writes_notification_hook(self, tmp_path: Path) -> None:
+    def test_install_writes_native_lifecycle_notification_hook(
+        self,
+        tmp_path: Path,
+    ) -> None:
         target = tmp_path / "hooks" / "post" / "notify.ts"
 
         installed = OmpNotificationHooksInstaller.create(target).install()
 
         assert installed is True
         content = target.read_text(encoding="utf-8")
-        assert (
-            'import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";'
-            in content
-        )
+        assert content == OMP_NOTIFICATION_HOOK_CONTENT
         assert 'pi.on("ui_prompt_start"' in content
         assert 'pi.on("agent_start"' in content
-        assert 'pi.on("agent_end"' in content
+        assert 'pi.on("agent_before_settle"' in content
         assert 'pi.on("agent_settled"' in content
-        assert "event.messages" in content
-        assert "stopReason" in content
-        assert "isError" in content
-        assert "hasUI" in content
-        assert "#{client_session}" in content
-        assert "#{window_active}" in content
-        assert "#{window_index}" in content
-        assert "windowIndex" in content
-        assert "tmux ${state.sessionName}:${state.windowIndex}" in content
-        assert "input needed" in content
-        assert "task complete" in content
-        assert "task failed" in content
-        assert "notify-send" in content
-        assert 'pi.on("turn_end"' not in content
-        assert 'pi.on("tool_call"' not in content
+        assert 'pi.on("agent_end"' not in content
+        assert 'pi.on("agent_error"' not in content
+        assert '"agent-notify"' in content
+        assert '"question"' in content
+        assert '"complete"' in content
+        assert '"error"' in content
+        assert "hasUI" not in content
+        assert "notify-send" not in content
+        assert "windowIndex" not in content
 
     def test_install_is_deterministic(self, tmp_path: Path) -> None:
         target = tmp_path / "notify.ts"
@@ -59,7 +54,9 @@ class TestOmpNotificationHooksInstaller:
         assert first_content == second_content
 
     def test_install_returns_false_when_write_fails(
-        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+        self,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
     ) -> None:
         blocking_file = tmp_path / "blocker"
         blocking_file.write_text("not a directory", encoding="utf-8")

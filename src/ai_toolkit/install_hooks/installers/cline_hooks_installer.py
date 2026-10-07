@@ -8,6 +8,7 @@ CLINE_HOOK_CONTENT: str = '''import type { AgentPlugin } from "@cline/core";
 const CODE_EXTENSIONS: Set<string> = new Set([
   "py", "rs", "go", "ts", "tsx", "js", "jsx", "java", "kt", "swift",
   "cs", "c", "h", "cc", "cpp", "hpp", "cxx", "rb", "php", "scala", "lua", "sh",
+  "md", "markdown",
 ]);
 
 function isSourceCodePath(path: string): boolean {

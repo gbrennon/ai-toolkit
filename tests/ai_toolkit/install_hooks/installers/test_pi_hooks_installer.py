@@ -1,14 +1,14 @@
 import json
-import subprocess
+from pathlib import Path
 
 import pytest
 
 from ai_toolkit.install_hooks.installers.pi_hooks_installer import (
     CODE_EXTENSIONS,
-    HOOK_CMD,
     HOOK_MATCHER,
     HOOK_PACKAGE,
-    NOTIFICATION_CMD,
+    LEGACY_NOTIFICATION_CMD,
+    PI_NOTIFICATION_EXTENSION_CONTENT,
     PiHooksInstaller,
     install_hooks,
 )
@@ -18,14 +18,18 @@ pytestmark = pytest.mark.integration
 
 def _expected_tool_conditions() -> set[str]:
     return {
-        f"{tool}(*.{ext})"
-        for tool in ("Write", "Edit", "Read")
-        for ext in CODE_EXTENSIONS
+        f"{tool}(*.{extension})"
+        for tool in ("Write", "Edit")
+        for extension in CODE_EXTENSIONS
     }
 
 
 class TestPiHooksInstaller:
-    def test_install_hooks_copies_hook_from_package_path(self, tmp_path, monkeypatch):
+    def test_install_hooks_copies_hook_from_package_path(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         monkeypatch.chdir(tmp_path)
 
         assert install_hooks() is True
@@ -34,13 +38,17 @@ class TestPiHooksInstaller:
         assert installed_hook.is_file()
         assert "class PROpenedHook" in installed_hook.read_text(encoding="utf-8")
 
-    def test_install_writes_hook_and_package_to_new_file(self, tmp_path):
-        target = tmp_path / "settings.json"
+    def test_install_writes_quality_hook_and_notification_extension(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        settings_target = tmp_path / "settings.json"
+        extension_target = tmp_path / "extensions" / "ai-toolkit-notify.ts"
 
-        installed = PiHooksInstaller.create(target).install()
+        installed = PiHooksInstaller.create(settings_target, extension_target).install()
 
         assert installed is True
-        data = json.loads(target.read_text(encoding="utf-8"))
+        data = json.loads(settings_target.read_text(encoding="utf-8"))
         groups = data["hooks"]["PostToolUse"]
         assert len(groups) == 1
         assert groups[0]["matcher"] == HOOK_MATCHER
@@ -53,35 +61,47 @@ class TestPiHooksInstaller:
             for hook in hooks
         )
         assert HOOK_PACKAGE in data["packages"]
+        assert extension_target.read_text(encoding="utf-8") == (
+            PI_NOTIFICATION_EXTENSION_CONTENT
+        )
 
-    def test_install_writes_stop_notification_hook(self, tmp_path):
+    @staticmethod
+    def test_notification_extension_uses_supported_lifecycle_boundaries() -> None:
+        content = PI_NOTIFICATION_EXTENSION_CONTENT
+
+        assert 'pi.on("ui_prompt_start"' in content
+        assert 'pi.on("agent_before_settle"' in content
+        assert 'pi.on("agent_settled"' in content
+        assert 'pi.on("agent_error"' not in content
+        assert 'pi.on("agent_end"' not in content
+        assert '"agent-notify"' in content
+        assert "window_index" not in content
+
+    def test_install_removes_legacy_stop_notification_only(
+        self,
+        tmp_path: Path,
+    ) -> None:
         target = tmp_path / "settings.json"
+        target.write_text(
+            json.dumps(
+                {
+                    "hooks": {
+                        "Stop": [
+                            {"hooks": [{"command": LEGACY_NOTIFICATION_CMD}]},
+                            {"hooks": [{"command": "keep-this-hook"}]},
+                        ]
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
 
         PiHooksInstaller.create(target).install()
 
         data = json.loads(target.read_text(encoding="utf-8"))
-        groups = data["hooks"]["Stop"]
-        assert len(groups) == 1
-        assert "matcher" not in groups[0]
-        hooks = groups[0]["hooks"]
-        assert len(hooks) == 1
-        assert hooks[0]["type"] == "command"
-        assert hooks[0]["command"] == NOTIFICATION_CMD
-        assert "client_session" in hooks[0]["command"]
-        assert "window_active" in hooks[0]["command"]
+        assert data["hooks"]["Stop"] == [{"hooks": [{"command": "keep-this-hook"}]}]
 
-    def test_stop_notification_command_has_valid_shell_syntax(self) -> None:
-        result = subprocess.run(
-            ["sh", "-n"],
-            input=NOTIFICATION_CMD,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-
-        assert result.returncode == 0, result.stderr
-
-    def test_install_merges_without_clobbering_existing(self, tmp_path):
+    def test_install_merges_without_clobbering_existing(self, tmp_path: Path) -> None:
         target = tmp_path / "settings.json"
         target.write_text(json.dumps({"theme": "dark"}), encoding="utf-8")
 
@@ -92,21 +112,22 @@ class TestPiHooksInstaller:
         assert data["theme"] == "dark"
         assert HOOK_PACKAGE in data["packages"]
 
-    def test_install_does_not_duplicate_package(self, tmp_path):
+    def test_install_does_not_duplicate_package(self, tmp_path: Path) -> None:
         target = tmp_path / "settings.json"
-        target.write_text(
-            json.dumps({"packages": [HOOK_PACKAGE]}), encoding="utf-8"
-        )
+        target.write_text(json.dumps({"packages": [HOOK_PACKAGE]}), encoding="utf-8")
 
         PiHooksInstaller.create(target).install()
 
         data = json.loads(target.read_text(encoding="utf-8"))
         assert data["packages"].count(HOOK_PACKAGE) == 1
 
-    def test_install_replaces_existing_hook_config(self, tmp_path):
+    def test_install_replaces_existing_quality_hook_config(
+        self, tmp_path: Path
+    ) -> None:
         target = tmp_path / "settings.json"
         target.write_text(
-            json.dumps({"hooks": {"PostToolUse": [{}]}}), encoding="utf-8"
+            json.dumps({"hooks": {"PostToolUse": [{}]}}),
+            encoding="utf-8",
         )
 
         PiHooksInstaller.create(target).install()
@@ -115,7 +136,11 @@ class TestPiHooksInstaller:
         assert len(data["hooks"]["PostToolUse"]) == 1
         assert data["hooks"]["PostToolUse"][0]["matcher"] == HOOK_MATCHER
 
-    def test_install_returns_false_when_write_fails(self, tmp_path, capsys):
+    def test_install_returns_false_when_write_fails(
+        self,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
         target = tmp_path / "settings.json"
         target.mkdir()
 
@@ -124,17 +149,13 @@ class TestPiHooksInstaller:
         assert installed is False
         assert "Pi hook failed" in capsys.readouterr().err
 
-    def test_install_is_deterministic(self, tmp_path):
+    def test_install_is_deterministic(self, tmp_path: Path) -> None:
         target1 = tmp_path / "settings1.json"
         target2 = tmp_path / "settings2.json"
 
         PiHooksInstaller.create(target1).install()
+        first_content = target1.read_text(encoding="utf-8")
         PiHooksInstaller.create(target2).install()
+        second_content = target2.read_text(encoding="utf-8")
 
-        data1 = json.loads(target1.read_text(encoding="utf-8"))
-        data2 = json.loads(target2.read_text(encoding="utf-8"))
-
-        assert (
-            json.dumps(data1, sort_keys=True)
-            == json.dumps(data2, sort_keys=True)
-        ), "Multiple runs should produce identical settings"
+        assert first_content == second_content

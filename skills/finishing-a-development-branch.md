@@ -1,9 +1,13 @@
 ---
 name: finishing-a-development-branch
-description: Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup
+description: >-
+  Use when implementation is complete and verified, and you need to integrate
+  the branch through a forge pull request or controlled cleanup.
 ---
 
 # Finishing a Development Branch
+This skill completes verified branch work through a forge pull request or
+controlled cleanup.
 
 ## Overview
 
@@ -13,7 +17,7 @@ Guide completion of development work by presenting clear options and handling ch
 
 **Announce at start:** "I'm using the finishing-a-development-branch skill to complete this work."
 
-## The Process
+## Verification and Workspace State
 
 ### Step 1: Verify Tests
 
@@ -52,7 +56,7 @@ This determines which menu to show and how cleanup works:
 |-------|------|---------|
 | `GIT_DIR == GIT_COMMON` (normal repo) | Standard 4 options | No worktree to clean up |
 | `GIT_DIR != GIT_COMMON`, named branch | Standard 4 options | Provenance-based (see Step 6) |
-| `GIT_DIR != GIT_COMMON`, detached HEAD | Reduced 3 options (no merge) | No cleanup (externally managed) |
+| Detached HEAD | 3 options | No cleanup |
 
 ### Step 3: Determine Base Branch
 
@@ -63,6 +67,7 @@ git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null
 
 Or ask: "This branch split from main - is that correct?"
 
+## Completion Options
 ### Step 4: Present Options
 
 **Normal repo and named-branch worktree — present exactly these 4 options:**
@@ -70,7 +75,7 @@ Or ask: "This branch split from main - is that correct?"
 ```
 Implementation complete. What would you like to do?
 
-1. Merge back to <base-branch> locally
+1. Merge approved pull request through the forge (browser or `fj`/`gh`)
 2. Push and create a Pull Request
 3. Keep the branch as-is (I'll handle it later)
 4. Discard this work
@@ -92,27 +97,21 @@ Which option?
 
 **Don't add explanation** - keep options concise.
 
+## Remote Integration
 ### Step 5: Execute Choice
 
-#### Option 1: Merge Locally
+#### Option 1: Merge Approved Pull Request Through the Forge
 
-```bash
-# Get main repo root for CWD safety
-MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-toplevel)
-cd "$MAIN_ROOT"
+Use `pr-interaction` to inspect the configured remote and select the documented
+browser or forge CLI route (`fj` for Forgejo/Codeberg, `gh` for GitHub).
 
-# Merge first — verify success before removing anything
-git checkout <base-branch>
-git pull
-git merge <feature-branch>
+Verify the current pull request head, approval review, CI status, and branch
+synchronization before merging. Invoke the remote merge operation through the
+forge and use its documented branch-deletion option. Never check out the base
+branch or run a local `git merge`.
 
-# Verify tests on merged result
-<test command>
-
-# Only after merge succeeds: cleanup worktree (Step 6), then delete branch
-```
-
-Then: Cleanup worktree (Step 6), then delete branch:
+After the forge confirms the pull request is merged, clean up the worktree
+(Step 6), then delete the local feature branch:
 
 ```bash
 git branch -d <feature-branch>
@@ -158,9 +157,11 @@ Then: Cleanup worktree (Step 6), then force-delete branch:
 git branch -D <feature-branch>
 ```
 
+## Workspace Cleanup
 ### Step 6: Cleanup Workspace
 
-**Only runs for Options 1 and 4.** Options 2 and 3 always preserve the worktree.
+**Only runs for Option 1 after the forge confirms the merge, and Option 4.**
+Options 2 and 3 always preserve the worktree.
 
 ```bash
 GIT_DIR=$(cd "$(git rev-parse --git-dir)" 2>/dev/null && pwd -P)
@@ -170,7 +171,8 @@ WORKTREE_PATH=$(git rev-parse --show-toplevel)
 
 **If `GIT_DIR == GIT_COMMON`:** Normal repo, no worktree to clean up. Done.
 
-**If worktree path is under `.worktrees/` or `worktrees/`:** Superpowers created this worktree — we own cleanup.
+**If worktree path is under `.worktrees/` or `worktrees/`:** Superpowers created
+this worktree, so we own cleanup.
 
 ```bash
 MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-toplevel)
@@ -179,13 +181,14 @@ git worktree remove "$WORKTREE_PATH"
 git worktree prune  # Self-healing: clean up any stale registrations
 ```
 
-**Otherwise:** The host environment (harness) owns this workspace. Do NOT remove it. If your platform provides a workspace-exit tool, use it. Otherwise, leave the workspace in place.
+**Otherwise:** The host environment owns this workspace. Do NOT remove it. If
+the platform provides a workspace-exit tool, use it. Otherwise, leave it.
 
 ## Quick Reference
 
 | Option | Merge | Push | Keep Worktree | Cleanup Branch |
 |--------|-------|------|---------------|----------------|
-| 1. Merge locally | yes | - | - | yes |
+| 1. Forge merge | - | - | - | yes |
 | 2. Create PR | - | yes | yes | - |
 | 3. Keep as-is | - | - | yes | - |
 | 4. Discard | - | - | - | yes (force) |
@@ -206,7 +209,7 @@ git worktree prune  # Self-healing: clean up any stale registrations
 
 **Deleting branch before removing worktree**
 - **Problem:** `git branch -d` fails because worktree still references the branch
-- **Fix:** Merge first, remove worktree, then delete branch
+- **Fix:** Confirm the forge merge before removing the worktree or deleting the branch
 
 **Running git worktree remove from inside the worktree**
 - **Problem:** Command fails silently when CWD is inside the worktree being removed
@@ -224,7 +227,7 @@ git worktree prune  # Self-healing: clean up any stale registrations
 
 **Never:**
 - Proceed with failing tests
-- Merge without verifying tests on result
+- Merge a pull request without verifying tests, review, CI, and synchronization
 - Delete work without confirmation
 - Force-push without explicit request
 - Remove a worktree before confirming merge success
@@ -236,6 +239,7 @@ git worktree prune  # Self-healing: clean up any stale registrations
 - Detect environment before presenting menu
 - Present exactly 4 options (or 3 for detached HEAD)
 - Get typed confirmation for Option 4
-- Clean up worktree for Options 1 & 4 only
+- Clean up only after forge confirmation for Option 1 or discard confirmation
+  for Option 4
 - `cd` to main repo root before worktree removal
 - Run `git worktree prune` after removal

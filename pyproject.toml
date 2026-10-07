@@ -35,6 +35,8 @@ fetch-pr-review = "ai_toolkit.fetch_pr_review.main:main"
 forge-issue = "ai_toolkit.forge_issue.main:main"
 forge-detect = "ai_toolkit.forge.detect:main"
 repo-maintenance = "ai_toolkit.repo_maintenance:main"
+agent-hook-pr-review = "ai_toolkit.agent_hook_pr_review.main:main"
+agent-notify = "ai_toolkit.agent_notify.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -8,6 +8,7 @@ OPENCODE_HOOK_PATH: Path = (
 OPENCODE_HOOK_CONTENT: str = '''const CODE_EXTENSIONS: Set<string> = new Set([
   "py", "rs", "go", "ts", "tsx", "js", "jsx", "java", "kt", "swift",
   "cs", "c", "h", "cc", "cpp", "hpp", "cxx", "rb", "php", "scala", "lua", "sh",
+  "md", "markdown",
 ]);
 const EDIT_TOOLS: Set<string> = new Set(["write", "edit"]);
 

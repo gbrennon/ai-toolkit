@@ -49,6 +49,14 @@ rules:
           metavariable: $FN
           regex: "^set_"
 
+  - id: rust-no-super-visibility
+    languages:
+      - rust
+    message: "pub(super) visibility is not allowed; use a narrower contract"
+    severity: ERROR
+    patterns:
+      - pattern-regex: "(?m)^\\s*pub\\(super\\)\\s+"
+
   - id: rust-no-allow-attribute
     languages:
       - rust

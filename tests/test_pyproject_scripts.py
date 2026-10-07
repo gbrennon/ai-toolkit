@@ -16,6 +16,8 @@ EXPECTED_SCRIPTS = {
     "forge-issue",
     "forge-detect",
     "repo-maintenance",
+    "agent-hook-pr-review",
+    "agent-notify",
 }
 
 
