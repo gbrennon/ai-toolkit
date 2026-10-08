@@ -12,7 +12,8 @@ from .git_port import GitPort
 from .hashing import Sha256Digest
 from .identity import RemoteIdentity, choose_repository_id, normalize_remote
 from .markdown import validate_agent_markdown
-from .models import RegistryDocument, RepositoryRecord, RepositoryStatus
+from .maintenance import validate_registry
+from .models import RegistryDocument, RepositoryRecord, RepositoryStatus, ValidationReport
 from .paths import RegistryPaths
 from .service_helpers import (
     manifest_text,
@@ -83,7 +84,7 @@ def _validate_content(content: str, record: RepositoryRecord) -> None:
 
 
 class RegistryService:
-    """Initialize and register repositories in the global agent registry."""
+    """Initialize, register, validate, and query the global agent registry."""
 
     def __init__(
         self,
@@ -151,6 +152,22 @@ class RegistryService:
         _validate_content(content, record)
         self._publish_record(registry, record, content)
         return record
+
+    def validate(self) -> ValidationReport:
+        """Return all registry and managed artifact validation issues."""
+        return validate_registry(self._paths, self._store)
+
+    def list_repositories(
+        self, include_inactive: bool = False
+    ) -> tuple[RepositoryRecord, ...]:
+        """Return repository records in deterministic identifier order."""
+        registry = self._load_registry()
+        records = (
+            record
+            for record in registry.repositories
+            if include_inactive or record.status is RepositoryStatus.ACTIVE
+        )
+        return tuple(sorted(records, key=lambda record: record.repository_id))
 
     def _resolve_registration(
         self, repository_path: Path
