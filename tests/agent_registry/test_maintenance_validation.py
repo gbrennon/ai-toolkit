@@ -12,6 +12,7 @@ from ai_toolkit.agent_registry.git_port import GitPort
 from ai_toolkit.agent_registry.models import RepositoryRecord
 from ai_toolkit.agent_registry.paths import RegistryPaths
 from ai_toolkit.agent_registry.service import RegistryService
+from ai_toolkit.agent_registry.query_service import RegistryQueryService
 
 
 INSTANT = datetime(2026, 1, 1, tzinfo=timezone.utc)
@@ -69,7 +70,7 @@ def _prepared(
         ("beta", "https://example.test/acme/beta"),
         ("alpha", "https://example.test/acme/alpha"),
     ),
-) -> tuple[RegistryPaths, RegistryService, tuple[RepositoryRecord, ...]]:
+) -> tuple[RegistryPaths, RegistryQueryService, tuple[RepositoryRecord, ...]]:
     paths = RegistryPaths(tmp_path / "registry")
     current_root = [tmp_path]
     current_remote = [""]
@@ -108,7 +109,7 @@ def _prepared(
         current_root[0] = repository.resolve()
         current_remote[0] = remote
         records.append(service.register(repository, review=False))
-    return paths, service, tuple(records)
+    return paths, RegistryQueryService(paths, git=cast(GitPort, git)), tuple(records)
 
 
 def test_validate_reports_a_valid_registry_without_local_repository_access(
@@ -171,6 +172,21 @@ def test_validate_reports_missing_managed_artifacts(tmp_path: Path) -> None:
     }
 
 
+def test_validate_can_select_one_repository_record(tmp_path: Path) -> None:
+    paths, service, records = _prepared(tmp_path)
+    for record in records:
+        paths.repository(record.repository_id).agent_config.write_text(
+            "not an AGENT document", encoding="utf-8"
+        )
+
+    report = service.validate("alpha")
+
+    assert report.issues
+    assert all(
+        str(paths.repository("beta").agent_config) not in issue.field
+        for issue in report.issues
+    )
+
 def test_list_repositories_filters_active_records_and_sorts_by_id(
     tmp_path: Path,
 ) -> None:
@@ -196,7 +212,7 @@ def test_list_repositories_raises_typed_error_for_unreadable_registry(
     if registry_state == "corrupt":
         paths.root.mkdir()
         paths.registry_file.write_text("{bad", encoding="utf-8")
-    service = RegistryService(paths, clock=lambda: INSTANT)
+    service = RegistryQueryService(RegistryPaths(tmp_path / "registry"))
 
     with pytest.raises(InvalidOperationError):
         service.list_repositories()
