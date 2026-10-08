@@ -4,6 +4,7 @@ from pathlib import Path
 PYPROJECT = Path("pyproject.toml").read_text()
 
 EXPECTED_SCRIPTS = {
+    "agent-registry",
     "ai-toolkit",
     "install-skills",
     "install-mcp-servers",
