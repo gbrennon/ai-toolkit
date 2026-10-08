@@ -1,3 +1,6 @@
+from .audit_event import AuditEvent
+from .audit_read_report import AuditReadReport
+from .hook_execution_result import HookExecutionResult
 from .agent_config_front_matter import AgentConfigFrontMatter
 from .hook_definition import HookDefinition
 from .hook_reference import HookReference
@@ -10,6 +13,9 @@ from .validation_issue import ValidationIssue
 from .validation_report import ValidationReport
 
 __all__ = [
+    "AuditEvent",
+    "AuditReadReport",
+    "HookExecutionResult",
     "AgentConfigFrontMatter",
     "HookDefinition",
     "HookReference",
