@@ -1,6 +1,7 @@
 # AI Agent Skill Library
 
-Curated skills for AI coding agents: architecture patterns (Clean, Hexagonal, CQRS, Event-driven) and testing strategies (Unit, Integration, E2E).
+Curated skills for AI coding agents: architecture patterns (Clean, Hexagonal, CQRS,
+Event-driven) and testing strategies (Unit, Integration, E2E).
 
 Each skill is a reusable prompt fragment that teaches an agent a specific practice.
 
@@ -8,7 +9,8 @@ Each skill is a reusable prompt fragment that teaches an agent a specific practi
 
 ```bash
 uv sync                    # install dependencies
-make install-cli           # install the ai-toolkit CLI onto PATH
+make install-cli           # install command-line tools, including agent-registry
+agent-registry initialize  # initialize the global agent registry
 make install-mcp           # install & deploy MCP servers
 make install-skills        # install skills
 make install               # install everything
@@ -19,11 +21,11 @@ make install               # install everything
 | Command | Description |
 |---------|-------------|
 | `make setup` | Install dependencies (`uv sync`) |
-| `make install-cli` | Install the `ai-toolkit` CLI into the active Python environment |
+| `make install-cli` | Install command-line tools, including `agent-registry` |
+| `agent-registry initialize` | Initialize the global agent registry |
 | `make install-mcp` | Install MCP servers from `mcp/mcp.json` and deploy to all agents |
 | `make install-skills` | Install skills |
-| `make install-agent-rules` | Compose `agent_rules/` into every AGENTS.md target listed in the manifest |
-| `make install` | Install everything (cli + mcp + skills + rules + hooks) |
+| `make install` | Install everything (CLI + MCP + skills + hooks) |
 | `make deploy-mcp` | Same as `install-mcp` — install + deploy to all agents |
 | `make test` | Run all tests |
 | `make test-unit` | Run unit tests only |
@@ -32,7 +34,9 @@ make install               # install everything
 
 ## MCP Servers
 
-MCP (Model Context Protocol) servers are configured in `mcp/mcp.json`. On install, each server's runtime is verified (npx, uvx, or custom command) and its config is deployed to every supported agent platform.
+MCP (Model Context Protocol) servers are configured in `mcp/mcp.json`. On install,
+each server's runtime is verified (npx, uvx, or custom command) and its config is
+deployed to every supported agent platform.
 
 ### Supported agent platforms
 
@@ -59,9 +63,12 @@ Add a `"platform"` field to restrict a server to a single agent:
 }
 ```
 
-Servers **without** a `platform` are shared — deployed to every agent. Servers **with** a `platform` only go to that agent's config.
+Servers **without** a `platform` are shared — deployed to every agent. Servers
+**with** a `platform` only go to that agent's config.
 
-See [docs/mcp-servers.md](docs/mcp-servers.md) for full details on the config format, server fields, multi-agent deployment, and adding new agent platforms ([guide](docs/adding-agent-platforms.md)).
+See [docs/mcp-servers.md](docs/mcp-servers.md) for full details on the config
+format, server fields, multi-agent deployment, and adding new agent platforms
+([guide](docs/adding-agent-platforms.md)).
 
 ## Configuration
 
@@ -72,12 +79,13 @@ GITHUB_TOKEN=...
 FORGEJO_ACCESS_TOKEN=...
 ```
 
-The `mcp/mcp.json` template uses Jinja2 expressions — missing variables fall back to human-readable placeholders.
+The `mcp/mcp.json` template uses Jinja2 expressions — missing variables fall back
+to human-readable placeholders.
 
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
-| [docs/mcp-servers.md](docs/mcp-servers.md) | Full MCP server config reference: fields, deployment, platform scoping |
-| [docs/adding-agent-platforms.md](docs/adding-agent-platforms.md) | Step-by-step guide to add a new agent platform |
-| [docs/authoring-agent-rules.md](docs/authoring-agent-rules.md) | How to add and improve the rule files composed into AGENTS.md |
+| [docs/mcp-servers.md](docs/mcp-servers.md) | MCP config, deployment, and platform scoping |
+| [docs/adding-agent-platforms.md](docs/adding-agent-platforms.md) | Add an agent platform |
+| [docs/agent-registry.md](docs/agent-registry.md) | Operate the global agent registry |
