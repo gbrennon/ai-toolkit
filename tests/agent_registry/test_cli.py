@@ -9,11 +9,13 @@ from ai_toolkit.agent_registry.errors import InvalidOperationError
 from ai_toolkit.agent_registry.models import (
     AuditEvent,
     AuditReadReport,
+    DiscoveryResult,
     RepositoryRecord,
     RepositoryStatus,
+    ValidationIssue,
     ValidationReport,
 )
-from ai_toolkit.agent_registry.service import RegistryService
+from ai_toolkit.agent_registry.cli import RegistryServices
 
 INSTANT = datetime(2026, 1, 1, tzinfo=timezone.utc)
 
@@ -34,11 +36,30 @@ def _record(tmp_path: Path) -> RepositoryRecord:
 class TestFakeService:
     def __init__(self, tmp_path: Path) -> None:
         self.record = _record(tmp_path)
+        self.registration = self
+        self.query = self
+        self.migration = self
+        self.archived = RepositoryRecord(
+            "old-project",
+            "https://example.test/acme/old-project",
+            tmp_path / "old-project",
+            tmp_path / "old-project" / "AGENT.md",
+            "b" * 64,
+            RepositoryStatus.ARCHIVED,
+            INSTANT,
+            INSTANT,
+        )
         self.initialized = False
         self.registered: tuple[Path, bool] | None = None
-        self.audited: str | None = None
+        self.discovered: Path | str | None = None
+        self.validated: str | None = None
+        self.listed: bool | None = None
         self.migrated: tuple[str, str | None, Path | None] | None = None
         self.registration_error: InvalidOperationError | None = None
+        self.discovery_result = DiscoveryResult(
+            "project", self.record.agent_config_path, ValidationReport()
+        )
+        self.validation_report = ValidationReport()
         self.audit_report = AuditReadReport(
             events=(AuditEvent(INSTANT, "register", "project", "1", "success", 0.1),),
         )
@@ -59,6 +80,22 @@ class TestFakeService:
 
     def doctor(self) -> ValidationReport:
         return self.doctor_report
+    def discover(self, path: Path | str) -> DiscoveryResult:
+        self.discovered = path
+        return self.discovery_result
+
+    def validate(self, repository_id: str | None = None) -> ValidationReport:
+        self.validated = repository_id
+        return self.validation_report
+
+    def list_repositories(
+        self, include_inactive: bool = False
+    ) -> tuple[RepositoryRecord, ...]:
+        self.listed = include_inactive
+        if include_inactive:
+            return (self.archived, self.record)
+        return (self.record,)
+
 
     def migrate(
         self,
@@ -71,8 +108,8 @@ class TestFakeService:
 
 
 def _install_fake(monkeypatch: pytest.MonkeyPatch, fake: TestFakeService) -> None:
-    def factory(_root: Path | None) -> RegistryService:
-        return cast(RegistryService, fake)
+    def factory(_root: Path | None) -> RegistryServices:
+        return cast(RegistryServices, fake)
 
     monkeypatch.setattr(cli, "_build_service", factory)
 
@@ -87,6 +124,9 @@ def test_help_lists_registry_commands(capsys: pytest.CaptureFixture[str]) -> Non
     assert "audit" in output.out
     assert "doctor" in output.out
     assert "migrate" in output.out
+    assert "discover" in output.out
+    assert "validate" in output.out
+    assert "list" in output.out
 
 
 def test_initialize_dispatches_and_prints_summary(
@@ -174,6 +214,66 @@ def test_migrate_dispatches_remote_and_local_path(
     )
     assert "Migrated project" in output.out
 
+def test_discover_dispatches_path_and_prints_global_configuration(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fake = TestFakeService(tmp_path)
+    _install_fake(monkeypatch, fake)
+    repository = tmp_path / "repository"
+    result = cli.main(["discover", str(repository)])
+    output = capsys.readouterr()
+    assert result == 0
+    assert fake.discovered == repository
+    assert "Discovered project" in output.out
+    assert str(fake.record.agent_config_path) in output.out
+def test_discover_returns_nonzero_for_validation_issues(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fake = TestFakeService(tmp_path)
+    fake.discovery_result = DiscoveryResult(
+        "project",
+        fake.record.agent_config_path,
+        ValidationReport((ValidationIssue("configSha256", "digest", "mismatch"),)),
+    )
+    _install_fake(monkeypatch, fake)
+    result = cli.main(["discover", str(tmp_path / "repository")])
+    output = capsys.readouterr()
+    assert result == 1
+    assert "Discovery found 1 issue(s)" in output.out
+    assert "configSha256: mismatch" in output.out
+
+def test_validate_dispatches_repository_and_reports_issues(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fake = TestFakeService(tmp_path)
+    _install_fake(monkeypatch, fake)
+    result = cli.main(["validate", "project"])
+    output = capsys.readouterr()
+    assert result == 0
+    assert fake.validated == "project"
+    assert "Registry validation: healthy" in output.out
+    fake.validation_report = ValidationReport(
+        (ValidationIssue("REGISTRY.json", "json", "malformed"),)
+    )
+    result = cli.main(["validate"])
+    output = capsys.readouterr()
+    assert result == 1
+    assert fake.validated is None
+    assert "Registry validation found 1 issue(s)" in output.out
+    assert "REGISTRY.json: malformed" in output.out
+
+def test_list_dispatches_include_inactive_and_prints_sorted_records(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fake = TestFakeService(tmp_path)
+    _install_fake(monkeypatch, fake)
+    result = cli.main(["list", "--include-inactive"])
+    output = capsys.readouterr()
+    assert result == 0
+    assert fake.listed is True
+    assert "Repositories: 2" in output.out
+    assert "old-project (archived)" in output.out
+    assert "project (active)" in output.out
 
 def test_invalid_command_returns_nonzero_and_writes_error(
     capsys: pytest.CaptureFixture[str],
