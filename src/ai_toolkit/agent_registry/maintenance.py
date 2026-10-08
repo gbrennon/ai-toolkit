@@ -14,7 +14,9 @@ from .repository_paths import RepositoryPaths
 from .validation import parse_repository_record, validate_registry_document
 
 
-def validate_registry(paths: RegistryPaths, store: JsonDocumentStore) -> ValidationReport:
+def validate_registry(
+    paths: RegistryPaths, store: JsonDocumentStore, repository_id: str | None = None
+) -> ValidationReport:
     """Validate the registry document and every managed repository artifact."""
     try:
         document = store.read(paths.registry_file)
@@ -32,24 +34,71 @@ def validate_registry(paths: RegistryPaths, store: JsonDocumentStore) -> Validat
         )
 
     root_report = validate_registry_document(document, paths)
-    artifact_issues = _artifact_issues(document, paths, store)
+    artifact_issues = _artifact_issues(document, paths, store, repository_id)
     return ValidationReport(root_report.issues + artifact_issues)
 
 
 def _artifact_issues(
-    document: JsonValue, paths: RegistryPaths, store: JsonDocumentStore
+    document: JsonValue,
+    paths: RegistryPaths,
+    store: JsonDocumentStore,
+    repository_id: str | None = None,
 ) -> tuple[ValidationIssue, ...]:
-    if not isinstance(document, Mapping):
+    selected = _selected_records_from_document(document, paths, repository_id)
+    if selected is None:
         return ()
+    issues = tuple(
+        issue
+        for index, record in selected
+        for issue in _record_artifact_issues(index, record, paths, store)
+    )
+    return _append_selection_issue(issues, repository_id, selected)
+
+
+def _selected_records_from_document(
+    document: JsonValue,
+    paths: RegistryPaths,
+    repository_id: str | None,
+) -> tuple[tuple[int, RepositoryRecord], ...] | None:
+    if not isinstance(document, Mapping):
+        return None
     raw_records = document.get("repositories")
     if not _is_sequence(raw_records):
-        return ()
-    issues: list[ValidationIssue] = []
-    for index, raw_record in enumerate(cast(Sequence[object], raw_records)):
+        return None
+    return _selected_records(cast(Sequence[object], raw_records), paths, repository_id)
+
+
+def _append_selection_issue(
+    issues: tuple[ValidationIssue, ...],
+    repository_id: str | None,
+    selected: tuple[tuple[int, RepositoryRecord], ...],
+) -> tuple[ValidationIssue, ...]:
+    if repository_id is not None and not selected:
+        return issues + (_missing_selection(repository_id),)
+    return issues
+
+
+def _selected_records(
+    raw_records: Sequence[object],
+    paths: RegistryPaths,
+    repository_id: str | None,
+) -> tuple[tuple[int, RepositoryRecord], ...]:
+    selected: list[tuple[int, RepositoryRecord]] = []
+    for index, raw_record in enumerate(raw_records):
         record = _parse_record(raw_record, paths)
-        if record is not None:
-            issues.extend(_record_artifact_issues(index, record, paths, store))
-    return tuple(issues)
+        if record is not None and (
+            repository_id is None or record.repository_id == repository_id
+        ):
+            selected.append((index, record))
+    return tuple(selected)
+
+
+def _missing_selection(repository_id: str) -> ValidationIssue:
+    return ValidationIssue(
+        "repositoryId",
+        "missing",
+        f"repository id is not registered: {repository_id}",
+    )
 
 
 def _parse_record(raw_record: object, paths: RegistryPaths) -> RepositoryRecord | None:
