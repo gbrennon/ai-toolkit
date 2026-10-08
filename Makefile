@@ -25,9 +25,6 @@ install-mcp:
 install-skills:
 	$(UV) run install-skills
 
-install-agent-rules:
-	$(UV) run install-agent-rules
-
 install-omp-commands:
 	$(UV) run install-omp-commands
 
@@ -48,8 +45,7 @@ HOOK_AGENT ?= all
 
 install-hooks: install-quality-cli
 	$(UV) run install-hooks --agent $(HOOK_AGENT)
-
-install: install-cli install-mcp install-skills install-agent-rules install-omp-commands install-provider-blocks install-pi-config install-quality-cli install-hooks
+install: install-cli install-mcp install-skills install-omp-commands install-provider-blocks install-pi-config install-quality-cli install-hooks
 
 install-pi-config:
 	$(UV) run install-pi-config
