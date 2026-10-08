@@ -12,6 +12,7 @@ from ai_toolkit.agent_registry.errors import InvalidOperationError
 from ai_toolkit.agent_registry.models import AuditEvent, ValidationReport
 from ai_toolkit.agent_registry.models._json import JsonValue
 from ai_toolkit.agent_registry.paths import RegistryPaths
+from ai_toolkit.agent_registry.query_service import RegistryQueryService
 from ai_toolkit.agent_registry.service import RegistryService
 
 
@@ -49,11 +50,10 @@ def _event(repository_id: str, sequence: int) -> AuditEvent:
     )
 
 
-def _service(tmp_path: Path) -> tuple[RegistryPaths, RegistryService]:
+def _service(tmp_path: Path) -> tuple[RegistryPaths, RegistryQueryService]:
     paths = RegistryPaths(tmp_path / "registry")
-    service = RegistryService(paths, clock=lambda: INSTANT)
-    service.initialize()
-    return paths, service
+    RegistryService(paths, clock=lambda: INSTANT).initialize()
+    return paths, RegistryQueryService(paths)
 
 
 def test_audit_orders_active_repositories_and_filters_one_repository(tmp_path: Path) -> None:
@@ -101,7 +101,7 @@ def test_audit_rejects_unknown_repository_id(tmp_path: Path) -> None:
 
 
 def test_audit_rejects_uninitialized_registry(tmp_path: Path) -> None:
-    service = RegistryService(RegistryPaths(tmp_path / "registry"), clock=lambda: INSTANT)
+    service = RegistryQueryService(RegistryPaths(tmp_path / "registry"))
 
     with pytest.raises(InvalidOperationError, match="not initialized"):
         service.audit()
