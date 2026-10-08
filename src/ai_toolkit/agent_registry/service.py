@@ -12,6 +12,7 @@ from .git_port import GitPort
 from .hashing import Sha256Digest
 from .identity import RemoteIdentity, choose_repository_id, normalize_remote
 from .markdown import validate_agent_markdown
+from .maintenance import validate_registry
 from .migration import apply_migration
 from .models import (
     AuditReadReport,
@@ -182,6 +183,22 @@ class RegistryService:
             self._store,
             (repository_id, git_remote, local_path, self._clock),
         )
+
+    def validate(self) -> ValidationReport:
+        """Return all registry and managed artifact validation issues."""
+        return validate_registry(self._paths, self._store)
+
+    def list_repositories(
+        self, include_inactive: bool = False
+    ) -> tuple[RepositoryRecord, ...]:
+        """Return repository records in deterministic identifier order."""
+        registry = self._load_registry()
+        records = (
+            record
+            for record in registry.repositories
+            if include_inactive or record.status is RepositoryStatus.ACTIVE
+        )
+        return tuple(sorted(records, key=lambda record: record.repository_id))
 
     def _resolve_registration(
         self, repository_path: Path
