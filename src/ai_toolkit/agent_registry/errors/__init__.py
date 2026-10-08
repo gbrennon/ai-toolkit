@@ -5,6 +5,7 @@ from .editor_not_configured_error import EditorNotConfiguredError
 from .editor_output_empty_error import EditorOutputEmptyError
 from .git_resolution_error import GitResolutionError
 from .identity_collision_error import IdentityCollisionError
+from .invalid_operation_error import InvalidOperationError
 from .malformed_document_error import MalformedDocumentError
 from .missing_origin_error import MissingOriginError
 from .path_escape_error import PathEscapeError
@@ -20,6 +21,7 @@ __all__ = [
     "EditorNotConfiguredError",
     "GitResolutionError",
     "IdentityCollisionError",
+    "InvalidOperationError",
     "MalformedDocumentError",
     "MissingOriginError",
     "PathEscapeError",
