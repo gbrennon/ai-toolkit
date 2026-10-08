@@ -3,7 +3,7 @@ from pathlib import Path
 
 SKILL = Path("skills/repo-maintenance.md").read_text()
 PR_INTERACTION = Path("skills/pr-interaction.md").read_text()
-GIT_GUIDANCE = Path("agent_rules/07-git-guidance.md").read_text()
+GIT_GUIDANCE = Path("skills/repo-maintenance.md").read_text()
 FINISHING = Path("skills/finishing-a-development-branch.md").read_text()
 
 
@@ -43,9 +43,7 @@ def test_maintenance_defines_autonomous_scope_boundary() -> None:
 
 
 def test_maintenance_requires_lifecycle_notifications() -> None:
-    assert (
-        "notifications for the `question`, `complete`, and `error` events" in SKILL
-    )
+    assert "notifications for the `question`, `complete`, and `error` events" in SKILL
     assert "agent-notify" in SKILL
     assert "visible tmux window" in SKILL
 
@@ -89,7 +87,6 @@ def test_pr_interaction_owns_review_queries_and_triage() -> None:
     assert "do not create duplicate issues" in PR_INTERACTION
 
 
-
 def test_git_guidance_allows_authorized_forge_merges_without_main_pushes() -> None:
     assert "Never push directly to `main`." in GIT_GUIDANCE
     assert "Never merge locally into `main`." in GIT_GUIDANCE
@@ -97,7 +94,10 @@ def test_git_guidance_allows_authorized_forge_merges_without_main_pushes() -> No
     assert "Agents MAY inspect pull request reviews" in GIT_GUIDANCE
     assert "Agents MAY post documented review-triage comments" in GIT_GUIDANCE
     assert "Agents MAY merge an approved pull request through the forge" in GIT_GUIDANCE
-    assert "A forge pull request merge targeting `main` is not a local merge" in GIT_GUIDANCE
+    assert (
+        "A forge pull request merge targeting `main` is not a local merge"
+        in GIT_GUIDANCE
+    )
     assert "default forge merge strategy" in GIT_GUIDANCE
 
 
@@ -106,11 +106,14 @@ def test_maintenance_allows_empty_ci_when_no_workflows_are_configured() -> None:
     assert "local quality gates" in SKILL
     assert "empty CI status response" in SKILL
 
+
 def test_finishing_skill_uses_forge_merge_only() -> None:
     assert "Merge approved pull request through the forge" in FINISHING
     assert "pr-interaction" in FINISHING
     assert "git merge <feature-branch>" not in FINISHING
     assert "Merge locally" not in FINISHING
+
+
 def test_skill_sources_have_no_merge_conflict_markers() -> None:
     for skill in (SKILL, PR_INTERACTION, GIT_GUIDANCE):
         assert "<<<<<<<" not in skill
