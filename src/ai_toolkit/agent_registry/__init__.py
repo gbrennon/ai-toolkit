@@ -17,6 +17,7 @@ from .errors import (
     EditorOutputEmptyError,
     GitResolutionError,
     IdentityCollisionError,
+    InvalidOperationError,
     MalformedDocumentError,
     MissingOriginError,
     PathEscapeError,
@@ -61,6 +62,7 @@ from .models import (
 from .path_containment import PathContainment
 from .paths import RegistryPaths
 from .repository_paths import RepositoryPaths
+from .service import RegistryService
 from .storage import AtomicWriter, JsonDocumentStore, NdjsonEventStore
 from .validation import (
     parse_registry_document,
@@ -98,6 +100,7 @@ __all__ = [
     "RegistryDocument",
     "RegistryEditor",
     "RegistryError",
+    "RegistryService",
     "RegistryPaths",
     "RemoteIdentity",
     "RemoteNormalizationError",
