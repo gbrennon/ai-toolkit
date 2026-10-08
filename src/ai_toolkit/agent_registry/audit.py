@@ -8,6 +8,7 @@ from .models import AuditEvent, AuditReadReport, ValidationIssue
 from .models._json import JsonValue
 from .ndjson_event_store import NdjsonEventStore
 
+
 def _append_event(
     store: NdjsonEventStore, path: Path, event: dict[str, JsonValue]
 ) -> None:
