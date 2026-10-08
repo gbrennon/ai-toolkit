@@ -12,6 +12,7 @@ from .git_port import GitPort
 from .hashing import Sha256Digest
 from .identity import RemoteIdentity, choose_repository_id, normalize_remote
 from .markdown import validate_agent_markdown
+from .migration import apply_migration
 from .models import (
     AuditReadReport,
     RegistryDocument,
@@ -168,6 +169,19 @@ class RegistryService:
     def doctor(self) -> ValidationReport:
         """Report global registry health without reading repositories or mutating state."""
         return ValidationReport(root_health(self._paths, self._store))
+
+    def migrate(
+        self,
+        repository_id: str,
+        git_remote: str | None = None,
+        local_path: Path | None = None,
+    ) -> RepositoryRecord:
+        """Migrate active global registry identity metadata without local I/O."""
+        return apply_migration(
+            self._paths,
+            self._store,
+            (repository_id, git_remote, local_path, self._clock),
+        )
 
     def _resolve_registration(
         self, repository_path: Path
