@@ -1,4 +1,5 @@
 from .audit import AuditEventStore
+from .hooks import HookExecutor
 from .dependencies import (
     load_hooks,
     load_skills,
@@ -42,6 +43,7 @@ from .models import (
     AuditEvent,
     AuditReadReport,
     HookDefinition,
+    HookExecutionResult,
     HookReference,
     RegistryDocument,
     RepositoryRecord,
@@ -73,8 +75,10 @@ __all__ = [
     "AuditReadReport",
     "GitResolutionError",
     "GitResolver",
+    "HookExecutor",
     "HookDefinition",
     "HookReference",
+    "HookExecutionResult",
     "IdentityCollisionError",
     "JsonDocumentStore",
     "MalformedDocumentError",
