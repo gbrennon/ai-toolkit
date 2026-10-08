@@ -9,6 +9,7 @@ from .dependencies import (
     select_hooks,
     select_skills,
 )
+from .discovery import DiscoveryService
 from .errors import (
     AtomicWriteError,
     EditorCommandEmptyError,
@@ -48,6 +49,7 @@ from .models import (
     AgentConfigFrontMatter,
     AuditEvent,
     AuditReadReport,
+    DiscoveryResult,
     HookDefinition,
     HookExecutionResult,
     HookReference,
@@ -84,6 +86,8 @@ __all__ = [
     "AuditEvent",
     "AuditEventStore",
     "AuditReadReport",
+    "DiscoveryResult",
+    "DiscoveryService",
     "GitResolutionError",
     "GitResolver",
     "HookExecutor",
@@ -91,6 +95,7 @@ __all__ = [
     "HookReference",
     "HookExecutionResult",
     "IdentityCollisionError",
+    "InvalidOperationError",
     "JsonDocumentStore",
     "MalformedDocumentError",
     "MissingOriginError",
