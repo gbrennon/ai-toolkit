@@ -38,7 +38,11 @@ def _parser() -> argparse.ArgumentParser:
         help="override the global registry directory",
     )
     commands = parser.add_subparsers(dest="command", required=True)
-    commands.add_parser("initialize", help="initialize the global registry")
+    commands.add_parser(
+        "init",
+        aliases=["initialize"],
+        help="initialize the global registry",
+    )
 
     register = commands.add_parser("register", help="register a Git repository")
     register.add_argument("path", type=Path)
@@ -167,6 +171,7 @@ def _migrate(services: RegistryServices, arguments: argparse.Namespace) -> int:
 
 def _dispatch(services: RegistryServices, arguments: argparse.Namespace) -> int:
     handlers: dict[str, CommandHandler] = {
+        "init": _initialize,
         "initialize": _initialize,
         "register": _register,
         "discover": _discover,
