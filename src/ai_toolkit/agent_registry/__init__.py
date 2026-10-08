@@ -62,7 +62,6 @@ from .path_containment import PathContainment
 from .paths import RegistryPaths
 from .repository_paths import RepositoryPaths
 from .storage import AtomicWriter, JsonDocumentStore, NdjsonEventStore
-from .service import RegistryService
 from .validation import (
     parse_registry_document,
     parse_repository_record,
@@ -98,7 +97,6 @@ __all__ = [
     "PathEscapeError",
     "RegistryDocument",
     "RegistryEditor",
-    "RegistryService",
     "RegistryError",
     "RegistryPaths",
     "RemoteIdentity",
