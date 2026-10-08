@@ -119,6 +119,7 @@ def test_help_lists_registry_commands(capsys: pytest.CaptureFixture[str]) -> Non
     output = capsys.readouterr()
 
     assert result == 0
+    assert "init" in output.out
     assert "initialize" in output.out
     assert "register" in output.out
     assert "audit" in output.out
@@ -129,7 +130,22 @@ def test_help_lists_registry_commands(capsys: pytest.CaptureFixture[str]) -> Non
     assert "list" in output.out
 
 
-def test_initialize_dispatches_and_prints_summary(
+def test_init_dispatches_and_prints_summary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fake = TestFakeService(tmp_path)
+    _install_fake(monkeypatch, fake)
+
+    result = cli.main(["init"])
+    output = capsys.readouterr()
+
+    assert result == 0
+    assert fake.initialized
+    assert "Initialized agent registry" in output.out
+    assert output.err == ""
+
+
+def test_initialize_alias_dispatches_and_prints_summary(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     fake = TestFakeService(tmp_path)
