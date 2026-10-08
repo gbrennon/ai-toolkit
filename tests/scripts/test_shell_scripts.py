@@ -10,7 +10,6 @@ SCRIPT_NAMES = (
     "check-modified-code-quality.sh",
     "install-aliases.sh",
     "install-systemd.sh",
-    "install_cline_rules.sh",
 )
 
 
@@ -96,20 +95,3 @@ def test_install_systemd_copies_units_and_starts_timers(tmp_path: Path) -> None:
         "--user daemon-reload",
         "--user enable --now example.timer",
     ]
-
-
-def test_install_cline_rules_moves_current_rule_files(tmp_path: Path) -> None:
-    repo = tmp_path / "repo"
-    scripts_dir = repo / "scripts"
-    rules_dir = repo / "agent_rules"
-    scripts_dir.mkdir(parents=True)
-    rules_dir.mkdir()
-    shutil.copy2(SCRIPTS_DIR / "install_cline_rules.sh", scripts_dir / "install_cline_rules.sh")
-    for name in ("00-global-noise-exclusions.md", "01-general-project-policies.md", "02-architecture-guidance.md"):
-        (rules_dir / name).write_text(name, encoding="ascii")
-
-    result = run_script(scripts_dir / "install_cline_rules.sh", env={"HOME": str(tmp_path / "home")})
-
-    assert result.returncode == 0
-    for name in ("00-global-noise-exclusions.md", "01-general-project-policies.md", "02-architecture-guidance.md"):
-        assert (tmp_path / "home/.cline/rules" / name).read_text(encoding="ascii") == name
