@@ -9,7 +9,6 @@ EXPECTED_SCRIPTS = {
     "install-skills",
     "install-mcp-servers",
     "install-pi-config",
-    "install-agent-rules",
     "install-omp-commands",
     "install-provider-blocks",
     "install-hooks",
@@ -31,3 +30,5 @@ def test_all_public_console_scripts_are_registered():
     }
 
     assert registered == EXPECTED_SCRIPTS
+    assert "agent-registry" in registered
+    assert "install-agent-rules" not in registered
