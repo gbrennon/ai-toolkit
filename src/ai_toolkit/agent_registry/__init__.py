@@ -1,3 +1,4 @@
+from .audit import AuditEventStore
 from .dependencies import (
     load_hooks,
     load_skills,
@@ -38,6 +39,8 @@ from .markdown import (
 )
 from .models import (
     AgentConfigFrontMatter,
+    AuditEvent,
+    AuditReadReport,
     HookDefinition,
     HookReference,
     RegistryDocument,
@@ -65,6 +68,9 @@ __all__ = [
     "AgentConfigFrontMatter",
     "AtomicWriteError",
     "AtomicWriter",
+    "AuditEvent",
+    "AuditEventStore",
+    "AuditReadReport",
     "GitResolutionError",
     "GitResolver",
     "HookDefinition",

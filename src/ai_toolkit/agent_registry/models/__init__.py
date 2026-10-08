@@ -1,4 +1,6 @@
 from .agent_config_front_matter import AgentConfigFrontMatter
+from .audit_event import AuditEvent
+from .audit_read_report import AuditReadReport
 from .hook_definition import HookDefinition
 from .hook_reference import HookReference
 from .registry_document import RegistryDocument
@@ -11,6 +13,8 @@ from .validation_report import ValidationReport
 
 __all__ = [
     "AgentConfigFrontMatter",
+    "AuditEvent",
+    "AuditReadReport",
     "HookDefinition",
     "HookReference",
     "RegistryDocument",
