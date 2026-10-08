@@ -11,7 +11,7 @@ Install the CLI, then initialize the global registry once:
 
 ```bash
 make install-cli
-agent-registry initialize
+agent-registry init
 ```
 
 Use `--registry-root PATH` with any command to select an alternate registry root,
