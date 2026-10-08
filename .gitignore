@@ -1,1 +1,10 @@
 .playwright-mcp/
+
+docs/superpowers/
+.agents/
+.omp/
+.pi/
+.claude/
+.cursor/
+agent-state/
+session-state/
