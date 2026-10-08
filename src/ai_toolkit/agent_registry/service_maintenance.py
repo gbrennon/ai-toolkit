@@ -22,16 +22,22 @@ def _file_issue(path: Path, label: str) -> ValidationIssue | None:
             return ValidationIssue(str(path), "not-file", f"{label} is not a file")
         path.read_bytes()
     except OSError as error:
-        return ValidationIssue(str(path), "unreadable-file", f"{label} is unreadable: {error}")
+        return ValidationIssue(
+            str(path), "unreadable-file", f"{label} is unreadable: {error}"
+        )
     return None
 
 
 def _directory_issue(path: Path, label: str) -> ValidationIssue | None:
     try:
         if not path.exists():
-            return ValidationIssue(str(path), "missing-directory", f"{label} is missing")
+            return ValidationIssue(
+                str(path), "missing-directory", f"{label} is missing"
+            )
         if not path.is_dir():
-            return ValidationIssue(str(path), "not-directory", f"{label} is not a directory")
+            return ValidationIssue(
+                str(path), "not-directory", f"{label} is not a directory"
+            )
         tuple(path.iterdir())
     except OSError as error:
         return ValidationIssue(
@@ -40,7 +46,9 @@ def _directory_issue(path: Path, label: str) -> ValidationIssue | None:
     return None
 
 
-def _registry_health(paths: RegistryPaths, store: JsonDocumentStore) -> tuple[ValidationIssue, ...]:
+def _registry_health(
+    paths: RegistryPaths, store: JsonDocumentStore
+) -> tuple[ValidationIssue, ...]:
     issue = _file_issue(paths.registry_file, "registry file")
     if issue is not None:
         return (issue,)
@@ -73,7 +81,9 @@ def _managed_file_issues(paths: RegistryPaths) -> tuple[ValidationIssue, ...]:
     return tuple(issues)
 
 
-def root_health(paths: RegistryPaths, store: JsonDocumentStore) -> tuple[ValidationIssue, ...]:
+def root_health(
+    paths: RegistryPaths, store: JsonDocumentStore
+) -> tuple[ValidationIssue, ...]:
     """Return strict root schema and managed global tree health issues."""
     issues = list(_registry_health(paths, store))
     issues.extend(_managed_file_issues(paths))
@@ -98,7 +108,11 @@ def audit_selection(
         return (_find_record(registry, repository_id),)
     return tuple(
         sorted(
-            (record for record in registry.repositories if record.status is RepositoryStatus.ACTIVE),
+            (
+                record
+                for record in registry.repositories
+                if record.status is RepositoryStatus.ACTIVE
+            ),
             key=lambda record: record.id,
         )
     )
@@ -113,7 +127,9 @@ def read_audit(
     events = []
     issues = []
     for record in records:
-        report = AuditEventStore(paths.repository(record.id).changes_audit).read(repository_id)
+        report = AuditEventStore(paths.repository(record.id).changes_audit).read(
+            repository_id
+        )
         events.extend(report.events)
         issues.extend(report.issues)
     return AuditReadReport(tuple(events), tuple(issues))

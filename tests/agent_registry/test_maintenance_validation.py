@@ -128,7 +128,9 @@ def test_validate_reports_a_valid_registry_without_local_repository_access(
 
 
 def test_validate_aggregates_root_record_and_artifact_issues(tmp_path: Path) -> None:
-    paths, service, records = _prepared(tmp_path, (("alpha", "https://example.test/acme/alpha"),))
+    paths, service, records = _prepared(
+        tmp_path, (("alpha", "https://example.test/acme/alpha"),)
+    )
     repository = paths.repository(records[0].repository_id)
     repository.agent_config.write_text("not an AGENT document", encoding="utf-8")
     repository.metadata.write_text("{}", encoding="utf-8")
@@ -152,7 +154,9 @@ def test_validate_aggregates_root_record_and_artifact_issues(tmp_path: Path) -> 
 
 
 def test_validate_reports_missing_managed_artifacts(tmp_path: Path) -> None:
-    paths, service, records = _prepared(tmp_path, (("alpha", "https://example.test/acme/alpha"),))
+    paths, service, records = _prepared(
+        tmp_path, (("alpha", "https://example.test/acme/alpha"),)
+    )
     repository = paths.repository(records[0].repository_id)
     repository.agent_config.unlink()
     repository.metadata.unlink()
@@ -186,6 +190,7 @@ def test_validate_can_select_one_repository_record(tmp_path: Path) -> None:
         str(paths.repository("beta").agent_config) not in issue.field
         for issue in report.issues
     )
+
 
 def test_list_repositories_filters_active_records_and_sorts_by_id(
     tmp_path: Path,

@@ -156,7 +156,6 @@ class RegistryService:
         self._publish_record(registry, record, content)
         return record
 
-
     def _resolve_registration(
         self, repository_path: Path
     ) -> tuple[Path, RemoteIdentity, RegistryDocument, str, RepositoryRecord | None]:

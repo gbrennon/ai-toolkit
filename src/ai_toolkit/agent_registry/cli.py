@@ -16,6 +16,7 @@ from .paths import RegistryPaths
 from .query_service import RegistryQueryService
 from .service import RegistryService
 
+
 @dataclass(frozen=True, slots=True)
 class RegistryServices:
     """Typed composition of registry mutation and query modules."""
@@ -46,7 +47,9 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="register without opening the configured editor",
     )
-    discover = commands.add_parser("discover", help="discover a repository configuration")
+    discover = commands.add_parser(
+        "discover", help="discover a repository configuration"
+    )
     discover.add_argument("path", type=Path)
 
     validate = commands.add_parser("validate", help="validate registry artifacts")
@@ -58,7 +61,6 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="include archived and blocked repositories",
     )
-
 
     audit = commands.add_parser("audit", help="read registry audit events")
     audit.add_argument("repository_id", nargs="?")
@@ -96,6 +98,7 @@ def _register(services: RegistryServices, arguments: argparse.Namespace) -> int:
     print(f"Managed configuration: {record.agent_config_path}")
     return 0
 
+
 def _report(label: str, report: ValidationReport) -> int:
     if report.is_valid:
         print(f"{label}: healthy.")
@@ -126,7 +129,6 @@ def _list(services: RegistryServices, arguments: argparse.Namespace) -> int:
     for record in records:
         print(f"{record.repository_id} ({record.status.value})")
     return 0
-
 
 
 def _audit(services: RegistryServices, arguments: argparse.Namespace) -> int:

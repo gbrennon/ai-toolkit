@@ -19,7 +19,9 @@ from ai_toolkit.agent_registry.service import RegistryService
 INSTANT = datetime(2026, 1, 1, tzinfo=timezone.utc)
 
 
-def _record(paths: RegistryPaths, repository_id: str, status: str = "active") -> dict[str, JsonValue]:
+def _record(
+    paths: RegistryPaths, repository_id: str, status: str = "active"
+) -> dict[str, JsonValue]:
     return {
         "id": repository_id,
         "gitRemote": f"https://example.test/acme/{repository_id}.git",
@@ -56,11 +58,17 @@ def _service(tmp_path: Path) -> tuple[RegistryPaths, RegistryQueryService]:
     return paths, RegistryQueryService(paths)
 
 
-def test_audit_orders_active_repositories_and_filters_one_repository(tmp_path: Path) -> None:
+def test_audit_orders_active_repositories_and_filters_one_repository(
+    tmp_path: Path,
+) -> None:
     paths, service = _service(tmp_path)
     _set_records(
         paths,
-        [_record(paths, "beta"), _record(paths, "alpha"), _record(paths, "blocked", "blocked")],
+        [
+            _record(paths, "beta"),
+            _record(paths, "alpha"),
+            _record(paths, "blocked", "blocked"),
+        ],
     )
     AuditEventStore(paths.repository("alpha").changes_audit).append(_event("alpha", 1))
     AuditEventStore(paths.repository("alpha").changes_audit).append(_event("alpha", 3))
@@ -70,12 +78,19 @@ def test_audit_orders_active_repositories_and_filters_one_repository(tmp_path: P
     report = service.audit()
     selected = service.audit("beta")
 
-    assert [event.repository_id for event in report.events] == ["alpha", "alpha", "beta", "alpha"]
+    assert [event.repository_id for event in report.events] == [
+        "alpha",
+        "alpha",
+        "beta",
+        "alpha",
+    ]
     assert [event.metadata["sequence"] for event in report.events] == [1, 3, 2, 9]
     assert [event.metadata["sequence"] for event in selected.events] == [2]
 
 
-def test_audit_preserves_malformed_line_issues_and_valid_event_order(tmp_path: Path) -> None:
+def test_audit_preserves_malformed_line_issues_and_valid_event_order(
+    tmp_path: Path,
+) -> None:
     paths, service = _service(tmp_path)
     _set_records(paths, [_record(paths, "alpha")])
     audit_path = paths.repository("alpha").changes_audit
@@ -161,13 +176,19 @@ def test_doctor_reports_corrupt_root_and_invalid_records(tmp_path: Path) -> None
     assert any(issue.field == "repositories[0].status" for issue in invalid.issues)
 
 
-def test_doctor_does_not_mutate_registry_or_read_local_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_doctor_does_not_mutate_registry_or_read_local_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     paths, service = _service(tmp_path)
     local_file = (tmp_path / "repository" / "AGENT.md").resolve()
     local_file.parent.mkdir()
     local_file.write_text("repository-only", encoding="utf-8")
-    _set_records(paths, [_record(paths, "alpha") | {"localPath": str(local_file.parent)}])
-    before = {path: path.read_bytes() for path in paths.root.rglob("*") if path.is_file()}
+    _set_records(
+        paths, [_record(paths, "alpha") | {"localPath": str(local_file.parent)}]
+    )
+    before = {
+        path: path.read_bytes() for path in paths.root.rglob("*") if path.is_file()
+    }
     original_read_text = cast(Callable[..., str], Path.read_text)
 
     def reject_local(path: Path, *args: object, **kwargs: object) -> str:
@@ -179,6 +200,8 @@ def test_doctor_does_not_mutate_registry_or_read_local_files(tmp_path: Path, mon
 
     report = service.doctor()
 
-    after = {path: path.read_bytes() for path in paths.root.rglob("*") if path.is_file()}
+    after = {
+        path: path.read_bytes() for path in paths.root.rglob("*") if path.is_file()
+    }
     assert report.is_valid
     assert after == before

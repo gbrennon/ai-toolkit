@@ -3,7 +3,12 @@ from pathlib import Path
 from typing import cast
 
 from .audit import AuditEventStore
-from .dependencies import load_hooks, load_skills, parse_hook_manifest, parse_skill_manifest
+from .dependencies import (
+    load_hooks,
+    load_skills,
+    parse_hook_manifest,
+    parse_skill_manifest,
+)
 from .errors import MalformedDocumentError, RegistryError
 from .hashing import Sha256Digest
 from .json_document_store import JsonDocumentStore, JsonValue
@@ -146,7 +151,9 @@ def _agent_issues(path: Path, record: RepositoryRecord) -> tuple[ValidationIssue
     issues: list[ValidationIssue] = []
     if Sha256Digest.digest_bytes(content) != record.config_sha256:
         issues.append(
-            ValidationIssue(str(path), "digest", "AGENT.md digest does not match record")
+            ValidationIssue(
+                str(path), "digest", "AGENT.md digest does not match record"
+            )
         )
     return tuple(issues) + _markdown_issues(content, path, record)
 
@@ -211,7 +218,9 @@ def _hooks_issues(
     return ()
 
 
-def _audit_issues(repository: RepositoryPaths, repository_id: str) -> tuple[ValidationIssue, ...]:
+def _audit_issues(
+    repository: RepositoryPaths, repository_id: str
+) -> tuple[ValidationIssue, ...]:
     path = repository.changes_audit
     if not path.is_file():
         return (_missing(path, FileNotFoundError(path)),)
@@ -231,4 +240,6 @@ def _unreadable(path: Path, error: BaseException) -> ValidationIssue:
 
 
 def _is_sequence(value: object) -> bool:
-    return isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray))
+    return isinstance(value, Sequence) and not isinstance(
+        value, (str, bytes, bytearray)
+    )

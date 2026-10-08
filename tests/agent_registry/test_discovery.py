@@ -127,6 +127,7 @@ def test_discover_returns_valid_global_configuration_without_reading_repository_
     assert result.validation_report.is_valid
     assert not local_agent.exists()
 
+
 def test_registry_query_service_discover_delegates_to_global_discovery(
     tmp_path: Path,
 ) -> None:
@@ -153,9 +154,9 @@ def test_discover_uses_owner_qualified_id_after_repository_name_collision(
     (other / "AGENT.md").write_text(
         _agent("other-project", "https://example.test/other/project"), encoding="utf-8"
     )
-    RegistryService(
-        paths, git=cast(GitPort, git), clock=lambda: INSTANT
-    ).register(other, review=False)
+    RegistryService(paths, git=cast(GitPort, git), clock=lambda: INSTANT).register(
+        other, review=False
+    )
 
     result = DiscoveryService(paths, git=cast(GitPort, git)).discover(other)
 

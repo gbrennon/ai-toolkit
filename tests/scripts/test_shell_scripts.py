@@ -40,13 +40,15 @@ def test_scripts_have_main_entry_point() -> None:
 
 
 def test_scripts_do_not_execute_setup_at_file_scope() -> None:
-    forbidden = ("set -e", "=\"", "=(")
+    forbidden = ("set -e", '="', "=(")
     for script in scripts():
         prefix = top_level_prefix(script)
         assert not any(statement in prefix for statement in forbidden), script
 
 
-def run_script(script: Path, *, input_text: str = "", env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+def run_script(
+    script: Path, *, input_text: str = "", env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["bash", str(script)],
         input=input_text,
@@ -77,7 +79,10 @@ def test_install_systemd_copies_units_and_starts_timers(tmp_path: Path) -> None:
     (systemd_dir / "example.timer").write_text("[Timer]\n", encoding="ascii")
     systemctl_log = tmp_path / "systemctl.log"
     systemctl = bin_dir / "systemctl"
-    systemctl.write_text(f"#!/usr/bin/env bash\nprintf '%s\\n' \"$*\" >> {systemctl_log}\n", encoding="ascii")
+    systemctl.write_text(
+        f"#!/usr/bin/env bash\nprintf '%s\\n' \"$*\" >> {systemctl_log}\n",
+        encoding="ascii",
+    )
     systemctl.chmod(0o755)
 
     result = run_script(

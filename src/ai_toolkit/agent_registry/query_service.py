@@ -34,9 +34,9 @@ class RegistryQueryService:
 
     def discover(self, repository_path: Path | str) -> DiscoveryResult:
         """Resolve and validate one repository through the discovery service."""
-        return DiscoveryService(
-            self._paths, git=self._git, store=self._store
-        ).discover(repository_path)
+        return DiscoveryService(self._paths, git=self._git, store=self._store).discover(
+            repository_path
+        )
 
     def audit(self, repository_id: str | None = None) -> AuditReadReport:
         """Read global audit events in deterministic repository and append order."""

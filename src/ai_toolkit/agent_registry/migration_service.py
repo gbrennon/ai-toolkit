@@ -8,9 +8,10 @@ from .models import RepositoryRecord
 from .paths import RegistryPaths
 
 Clock = Callable[[], datetime]
+
+
 def _now() -> datetime:
     return datetime.now(timezone.utc)
-
 
 
 class RegistryMigrationService:

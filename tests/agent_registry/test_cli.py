@@ -80,6 +80,7 @@ class TestFakeService:
 
     def doctor(self) -> ValidationReport:
         return self.doctor_report
+
     def discover(self, path: Path | str) -> DiscoveryResult:
         self.discovered = path
         return self.discovery_result
@@ -95,7 +96,6 @@ class TestFakeService:
         if include_inactive:
             return (self.archived, self.record)
         return (self.record,)
-
 
     def migrate(
         self,
@@ -214,6 +214,7 @@ def test_migrate_dispatches_remote_and_local_path(
     )
     assert "Migrated project" in output.out
 
+
 def test_discover_dispatches_path_and_prints_global_configuration(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -226,6 +227,8 @@ def test_discover_dispatches_path_and_prints_global_configuration(
     assert fake.discovered == repository
     assert "Discovered project" in output.out
     assert str(fake.record.agent_config_path) in output.out
+
+
 def test_discover_returns_nonzero_for_validation_issues(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -241,6 +244,7 @@ def test_discover_returns_nonzero_for_validation_issues(
     assert result == 1
     assert "Discovery found 1 issue(s)" in output.out
     assert "configSha256: mismatch" in output.out
+
 
 def test_validate_dispatches_repository_and_reports_issues(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
@@ -262,6 +266,7 @@ def test_validate_dispatches_repository_and_reports_issues(
     assert "Registry validation found 1 issue(s)" in output.out
     assert "REGISTRY.json: malformed" in output.out
 
+
 def test_list_dispatches_include_inactive_and_prints_sorted_records(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -274,6 +279,7 @@ def test_list_dispatches_include_inactive_and_prints_sorted_records(
     assert "Repositories: 2" in output.out
     assert "old-project (archived)" in output.out
     assert "project (active)" in output.out
+
 
 def test_invalid_command_returns_nonzero_and_writes_error(
     capsys: pytest.CaptureFixture[str],
