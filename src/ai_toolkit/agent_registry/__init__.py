@@ -1,3 +1,5 @@
+from .audit import AuditEventStore
+from .hooks import HookExecutor
 from .dependencies import (
     load_hooks,
     load_skills,
@@ -37,6 +39,9 @@ from .markdown import (
     validate_agent_markdown,
 )
 from .models import (
+    AuditEvent,
+    AuditReadReport,
+    HookExecutionResult,
     AgentConfigFrontMatter,
     HookDefinition,
     HookReference,
@@ -62,6 +67,11 @@ from .validation import (
 )
 
 __all__ = [
+    "AuditEvent",
+    "AuditEventStore",
+    "AuditReadReport",
+    "HookExecutionResult",
+    "HookExecutor",
     "AgentConfigFrontMatter",
     "AtomicWriteError",
     "AtomicWriter",
