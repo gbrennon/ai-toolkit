@@ -12,6 +12,7 @@ from ai_toolkit.agent_registry.git_port import GitPort
 from ai_toolkit.agent_registry.json_document_store import JsonDocumentStore
 from ai_toolkit.agent_registry.models._json import JsonValue
 from ai_toolkit.agent_registry.paths import RegistryPaths
+from ai_toolkit.agent_registry.migration_service import RegistryMigrationService
 from ai_toolkit.agent_registry.service import RegistryService
 
 
@@ -83,7 +84,7 @@ def _git(root: Path, remote: str) -> SimpleNamespace:
     return state
 
 
-def _prepared(tmp_path: Path) -> tuple[RegistryPaths, Path, RegistryService]:
+def _prepared(tmp_path: Path) -> tuple[RegistryPaths, Path, RegistryMigrationService]:
     paths = RegistryPaths(tmp_path / "registry")
     repository = tmp_path / "repository"
     repository.mkdir()
@@ -101,7 +102,7 @@ def _prepared(tmp_path: Path) -> tuple[RegistryPaths, Path, RegistryService]:
     )
     service.initialize()
     service.register(repository, review=False)
-    return paths, repository, service
+    return paths, repository, RegistryMigrationService(paths, clock=lambda: INSTANT)
 
 
 def test_migrate_updates_remote_and_local_path_without_touching_repository(
