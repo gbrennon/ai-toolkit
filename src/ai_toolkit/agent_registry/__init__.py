@@ -10,6 +10,8 @@ from .dependencies import (
     select_skills,
 )
 from .discovery import DiscoveryService
+from .instruction_resolver import InstructionResolver
+from .instruction_targets import GlobalInstructionTargets
 from .errors import (
     AtomicWriteError,
     EditorCommandEmptyError,
@@ -49,6 +51,9 @@ from .models import (
     AgentConfigFrontMatter,
     AuditEvent,
     AuditReadReport,
+    InstructionResolution,
+    InstructionSource,
+    InstructionSourceKind,
     DiscoveryResult,
     HookDefinition,
     HookExecutionResult,
@@ -89,6 +94,11 @@ __all__ = [
     "AuditEventStore",
     "AuditReadReport",
     "DiscoveryResult",
+    "GlobalInstructionTargets",
+    "InstructionResolution",
+    "InstructionResolver",
+    "InstructionSource",
+    "InstructionSourceKind",
     "DiscoveryService",
     "GitResolutionError",
     "GitResolver",

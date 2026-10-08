@@ -23,6 +23,9 @@ from ai_toolkit.agent_registry.paths import RegistryPaths
 from ai_toolkit.agent_registry.service import RegistryService
 from ai_toolkit.agent_registry.query_service import RegistryQueryService
 from ai_toolkit.agent_registry.discovery import DiscoveryService
+from ai_toolkit.agent_registry.instruction_resolver import InstructionResolver
+from ai_toolkit.agent_registry.instruction_targets import GlobalInstructionTargets
+from ai_toolkit.agent_registry.models import InstructionSourceKind
 
 INSTANT = datetime(2026, 1, 1, tzinfo=timezone.utc)
 
@@ -141,6 +144,51 @@ def test_registry_query_service_discover_delegates_to_global_discovery(
     assert result.validation_report.is_valid
     assert not local_agent.exists()
 
+
+
+def test_discovery_returns_local_then_managed_then_global_instructions(
+    tmp_path: Path,
+) -> None:
+    paths, repository, git, _ = _prepared(tmp_path)
+    global_path = tmp_path / "global" / "AGENTS.md"
+    global_path.parent.mkdir()
+    global_path.write_text("global instructions", encoding="utf-8")
+    manifest = tmp_path / "agent_targets.txt"
+    manifest.write_text(f"{global_path}\n", encoding="utf-8")
+    resolver = InstructionResolver(GlobalInstructionTargets(manifest))
+    registry_before = paths.registry_file.read_bytes()
+    service = DiscoveryService(
+        paths,
+        git=cast(GitPort, git),
+        resolver=resolver,
+    )
+
+    local_result = service.discover(repository)
+
+    assert local_result.instruction_resolution.selected is not None
+    assert (
+        local_result.instruction_resolution.selected.kind
+        is InstructionSourceKind.LOCAL
+    )
+    assert paths.registry_file.read_bytes() == registry_before
+
+    (repository / "AGENT.md").unlink()
+    managed_result = service.discover(repository)
+
+    assert managed_result.instruction_resolution.selected is not None
+    assert (
+        managed_result.instruction_resolution.selected.kind
+        is InstructionSourceKind.PER_REPOSITORY
+    )
+
+    paths.repository("project").agent_config.unlink()
+    global_result = service.discover(repository)
+
+    assert global_result.instruction_resolution.selected is not None
+    assert (
+        global_result.instruction_resolution.selected.kind
+        is InstructionSourceKind.GLOBAL
+    )
 
 def test_discover_uses_owner_qualified_id_after_repository_name_collision(
     tmp_path: Path,
@@ -285,6 +333,48 @@ def test_discover_requires_initialized_registry(tmp_path: Path) -> None:
 
     with pytest.raises(InvalidOperationError, match="not initialized"):
         DiscoveryService(paths, git=cast(GitPort, git)).discover(repository)
+
+def test_resolve_instructions_uses_local_file_for_unregistered_repository(
+    tmp_path: Path,
+) -> None:
+    paths = RegistryPaths(tmp_path / "registry")
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    (repository / "AGENT.md").write_text("local only", encoding="utf-8")
+    git = _git(repository, "https://example.test/acme/project.git")
+    RegistryService(paths, git=cast(GitPort, git), clock=lambda: INSTANT).initialize()
+    service = DiscoveryService(paths, git=cast(GitPort, git))
+
+    resolution = service.resolve_instructions(repository)
+
+    assert resolution.selected is not None
+    assert resolution.selected.kind is InstructionSourceKind.LOCAL
+    with pytest.raises(InvalidOperationError, match="no active registry mapping"):
+        service.discover(repository)
+
+
+def test_resolve_instructions_falls_back_to_global_for_unregistered_repository(
+    tmp_path: Path,
+) -> None:
+    paths = RegistryPaths(tmp_path / "registry")
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    git = _git(repository, "https://example.test/acme/project.git")
+    RegistryService(paths, git=cast(GitPort, git), clock=lambda: INSTANT).initialize()
+    global_path = tmp_path / "global" / "AGENTS.md"
+    global_path.parent.mkdir()
+    global_path.write_text("global only", encoding="utf-8")
+    manifest = tmp_path / "agent_targets.txt"
+    manifest.write_text(f"{global_path}\n", encoding="utf-8")
+    resolver = InstructionResolver(GlobalInstructionTargets(manifest))
+    service = DiscoveryService(paths, git=cast(GitPort, git), resolver=resolver)
+
+    resolution = service.resolve_instructions(repository)
+
+    assert resolution.selected is not None
+    assert resolution.selected.kind is InstructionSourceKind.GLOBAL
+    assert resolution.selected.path == global_path.resolve()
+
 
 
 def test_discovery_result_is_frozen_and_requires_absolute_path(tmp_path: Path) -> None:

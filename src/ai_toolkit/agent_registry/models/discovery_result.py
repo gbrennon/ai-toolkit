@@ -1,6 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
+from .instruction_resolution import InstructionResolution
 from .validation_report import ValidationReport
 
 
@@ -11,6 +12,9 @@ class DiscoveryResult:
     repository_id: str
     agent_config_path: Path
     validation_report: ValidationReport
+    instruction_resolution: InstructionResolution = field(
+        default_factory=InstructionResolution
+    )
 
     def __post_init__(self) -> None:
         if not self.repository_id.strip():

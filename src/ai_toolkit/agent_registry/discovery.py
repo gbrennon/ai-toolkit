@@ -21,6 +21,7 @@ from .json_document_store import JsonDocumentStore
 from .markdown import validate_agent_markdown
 from .models import (
     DiscoveryResult,
+    InstructionResolution,
     RegistryDocument,
     RepositoryRecord,
     RepositoryStatus,
@@ -29,6 +30,7 @@ from .models import (
 )
 from .paths import RegistryPaths
 from .repository_paths import RepositoryPaths
+from .instruction_resolver import InstructionResolver
 from .validation import parse_registry_document
 
 
@@ -38,6 +40,7 @@ class DiscoveryService:
 
     _paths: RegistryPaths
     _git: GitPort
+    _resolver: InstructionResolver
     _store: JsonDocumentStore
 
     def __init__(
@@ -45,11 +48,17 @@ class DiscoveryService:
         paths: RegistryPaths,
         git: GitPort | None = None,
         store: JsonDocumentStore | None = None,
+        resolver: InstructionResolver | None = None,
     ) -> None:
         object.__setattr__(self, "_paths", paths)
         object.__setattr__(self, "_git", GitResolver() if git is None else git)
         object.__setattr__(
             self, "_store", JsonDocumentStore() if store is None else store
+        )
+        object.__setattr__(
+            self,
+            "_resolver",
+            InstructionResolver() if resolver is None else resolver,
         )
 
     def discover(self, repository_path: Path | str) -> DiscoveryResult:
@@ -59,7 +68,43 @@ class DiscoveryService:
         registry = self._load_registry()
         record = self._select_record(registry, root, remote)
         report = self._validate_artifacts(record, registry.schema_version)
-        return DiscoveryResult(record.repository_id, record.agent_config_path, report)
+        instruction_resolution = self._resolver.resolve(
+            root, record.agent_config_path
+        )
+        return DiscoveryResult(
+            record.repository_id,
+            record.agent_config_path,
+            report,
+            instruction_resolution,
+        )
+
+    def resolve_instructions(
+        self, repository_path: Path | str
+    ) -> InstructionResolution:
+        """Resolve effective instruction paths even without a registry mapping."""
+        root = self._git.resolve_worktree_root(Path(repository_path)).resolve()
+        managed_path = self._managed_path_or_none(root)
+        return self._resolver.resolve(root, managed_path)
+
+    def _managed_path_or_none(self, root: Path) -> Path | None:
+        try:
+            registry = self._load_registry()
+            remote = self._resolve_origin(root)
+            record = self._select_record(registry, root, remote)
+        except InvalidOperationError as error:
+            if self._is_unregistered(error):
+                return None
+            raise
+        return record.agent_config_path
+
+    def _is_unregistered(self, error: InvalidOperationError) -> bool:
+        message = str(error)
+        return message.startswith(
+            (
+                "registry is not initialized",
+                "no active registry mapping",
+            )
+        )
 
     def _load_registry(self) -> RegistryDocument:
         try:

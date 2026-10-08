@@ -1,9 +1,38 @@
 # Agent Registry Operations
 
-`agent-registry` is the command-line interface for the global agent registry. The
-registry stores managed `AGENT.md` files below `~/.agent-registry`, outside the
+`agent-registry` manages optional per-repository agent configuration outside the
 repository. Registry operations never create or update an `AGENT.md` in the
 repository.
+
+## Instruction precedence
+
+Instruction resolution uses the first existing source in this order:
+
+1. The repository's local `AGENT.md`.
+2. The managed per-repository file at
+   `~/.agent-registry/repos/<repository-id>/AGENT.md`.
+3. A global-global instruction target.
+
+A local file shadows both registry layers. The resolver checks whether the local
+file exists, returns its path, and does not copy its content into registry state.
+The host agent is responsible for loading the selected path.
+
+The global-global target is selected from `~/.config/ai-toolkit/agent_targets.txt`
+in manifest order. Blank lines and comments are ignored, and the first existing
+target wins. When the manifest does not exist, the resolver checks these default
+targets in order:
+
+```text
+~/.agents/AGENTS.md
+~/.config/opencode/AGENTS.md
+~/.omp/agent/AGENTS.md
+~/.config/antigravity/AGENTS.md
+~/.pi/agent/AGENTS.md
+```
+
+If no candidate exists, discovery reports that no instructions were selected.
+The legacy rule source and installer remain available; adopting the registry is
+optional.
 
 ## Initialize
 
@@ -26,8 +55,22 @@ agent-registry register /path/to/repository
 ```
 
 Registration resolves the Git worktree root and its canonical `origin` remote,
-then opens the generated global configuration in `$VISUAL` or `$EDITOR` for
-review. The editor must exit successfully before the configuration is stored.
+then opens the generated per-repository configuration in `$VISUAL` or `$EDITOR`
+for review. The editor must exit successfully before the configuration is stored.
+
+Registration never imports or overwrites a repository-local `AGENT.md`.
+
+## Discover instructions
+
+Resolve a repository's instruction source with:
+
+```bash
+agent-registry discover /path/to/repository
+```
+
+The command reports the selected source path and its layer. Discovery validates
+the selected registry mapping and managed artifacts, but local instruction
+content is not copied into the registry or used to mutate registry metadata.
 
 ## Check registry health
 
@@ -51,5 +94,5 @@ configuration:
 agent-registry migrate REPOSITORY_ID
 ```
 
-The registry is the only authority for managed agent configuration. Keep secrets
-out of `AGENT.md`, registry metadata, and audit output.
+Keep secrets out of local instructions, managed `AGENT.md` files, registry
+metadata, and audit output.

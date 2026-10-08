@@ -111,6 +111,11 @@ def _discover(services: RegistryServices, arguments: argparse.Namespace) -> int:
     result = services.query.discover(path)
     print(f"Discovered {result.repository_id}.")
     print(f"Managed configuration: {result.agent_config_path}")
+    selected = result.instruction_resolution.selected
+    if selected is None:
+        print("Instructions: none")
+    else:
+        print(f"Instructions: {selected.kind.value} ({selected.path})")
     return _report("Discovery", result.validation_report)
 
 
