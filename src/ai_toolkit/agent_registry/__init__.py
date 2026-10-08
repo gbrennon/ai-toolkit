@@ -65,6 +65,8 @@ from .path_containment import PathContainment
 from .paths import RegistryPaths
 from .repository_paths import RepositoryPaths
 from .service import RegistryService
+from .migration_service import RegistryMigrationService
+from .query_service import RegistryQueryService
 from .storage import AtomicWriter, JsonDocumentStore, NdjsonEventStore
 from .validation import (
     parse_registry_document,
@@ -106,6 +108,8 @@ __all__ = [
     "RegistryEditor",
     "RegistryError",
     "RegistryService",
+    "RegistryMigrationService",
+    "RegistryQueryService",
     "RegistryPaths",
     "RemoteIdentity",
     "RemoteNormalizationError",
