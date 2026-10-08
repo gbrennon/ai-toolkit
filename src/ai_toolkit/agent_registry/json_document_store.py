@@ -2,6 +2,7 @@ import json
 from dataclasses import dataclass, field
 from json import JSONDecodeError
 from pathlib import Path
+from typing import cast
 
 from .atomic_writer import AtomicWriter
 from .errors import MalformedDocumentError
@@ -9,13 +10,25 @@ from .errors import MalformedDocumentError
 type JsonValue = None | bool | int | float | str | list[JsonValue] | dict[str, JsonValue]
 
 
+def _as_json_list(value: list[object]) -> list[JsonValue]:
+    return [as_json_value(item) for item in value]
+
+def _as_json_object(value: dict[object, object]) -> dict[str, JsonValue]:
+    result: dict[str, JsonValue] = {}
+    for key, item in value.items():
+        if not isinstance(key, str):
+            raise TypeError("JSON object keys must be strings")
+        result[key] = as_json_value(item)
+    return result
+
+
 def as_json_value(value: object) -> JsonValue:
     if value is None or isinstance(value, (bool, int, float, str)):
         return value
     if isinstance(value, list):
-        return [as_json_value(item) for item in value]
-    if isinstance(value, dict) and all(isinstance(key, str) for key in value):
-        return {key: as_json_value(item) for key, item in value.items()}
+        return _as_json_list(cast(list[object], value))
+    if isinstance(value, dict):
+        return _as_json_object(cast(dict[object, object], value))
     raise TypeError(f"unsupported JSON value: {type(value).__name__}")
 
 
