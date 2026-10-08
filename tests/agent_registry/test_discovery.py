@@ -21,6 +21,7 @@ from ai_toolkit.agent_registry.models import (
 )
 from ai_toolkit.agent_registry.paths import RegistryPaths
 from ai_toolkit.agent_registry.service import RegistryService
+from ai_toolkit.agent_registry.query_service import RegistryQueryService
 from ai_toolkit.agent_registry.discovery import DiscoveryService
 
 INSTANT = datetime(2026, 1, 1, tzinfo=timezone.utc)
@@ -97,7 +98,7 @@ def _git(root: Path, remote: str) -> SimpleNamespace:
 def _prepared(
     tmp_path: Path,
     remote: str = "https://example.test/acme/project.git",
-) -> tuple[RegistryPaths, Path, SimpleNamespace, RegistryService]:
+) -> tuple[RegistryPaths, Path, SimpleNamespace, RegistryQueryService]:
     paths = RegistryPaths(tmp_path / "registry")
     repository = tmp_path / "repository"
     repository.mkdir()
@@ -108,7 +109,7 @@ def _prepared(
     service = RegistryService(paths, git=cast(GitPort, git), clock=lambda: INSTANT)
     service.initialize()
     service.register(repository)
-    return paths, repository, git, service
+    return paths, repository, git, RegistryQueryService(paths, git=cast(GitPort, git))
 
 
 def test_discover_returns_valid_global_configuration_without_reading_repository_agent(
@@ -126,11 +127,25 @@ def test_discover_returns_valid_global_configuration_without_reading_repository_
     assert result.validation_report.is_valid
     assert not local_agent.exists()
 
+def test_registry_query_service_discover_delegates_to_global_discovery(
+    tmp_path: Path,
+) -> None:
+    paths, repository, _, service = _prepared(tmp_path)
+    local_agent = repository / "AGENT.md"
+    local_agent.unlink()
+
+    result = service.discover(str(repository))
+
+    assert result.repository_id == "project"
+    assert result.agent_config_path == paths.repository("project").agent_config
+    assert result.validation_report.is_valid
+    assert not local_agent.exists()
+
 
 def test_discover_uses_owner_qualified_id_after_repository_name_collision(
     tmp_path: Path,
 ) -> None:
-    paths, repository, git, service = _prepared(tmp_path)
+    paths, repository, git, _ = _prepared(tmp_path)
     other = tmp_path / "other"
     other.mkdir()
     git.root = other.resolve()
@@ -138,7 +153,9 @@ def test_discover_uses_owner_qualified_id_after_repository_name_collision(
     (other / "AGENT.md").write_text(
         _agent("other-project", "https://example.test/other/project"), encoding="utf-8"
     )
-    service.register(other)
+    RegistryService(
+        paths, git=cast(GitPort, git), clock=lambda: INSTANT
+    ).register(other, review=False)
 
     result = DiscoveryService(paths, git=cast(GitPort, git)).discover(other)
 
