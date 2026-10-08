@@ -2,15 +2,30 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 import sys
 from pathlib import Path
 from typing import cast
 
 from .errors import RegistryError
+from .git import GitResolver
+from .json_document_store import JsonDocumentStore
+from .migration_service import RegistryMigrationService
+from .models import ValidationReport
 from .paths import RegistryPaths
+from .query_service import RegistryQueryService
 from .service import RegistryService
 
-CommandHandler = Callable[[RegistryService, argparse.Namespace], int]
+@dataclass(frozen=True, slots=True)
+class RegistryServices:
+    """Typed composition of registry mutation and query modules."""
+
+    registration: RegistryService
+    query: RegistryQueryService
+    migration: RegistryMigrationService
+
+
+CommandHandler = Callable[[RegistryServices, argparse.Namespace], int]
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -31,6 +46,19 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="register without opening the configured editor",
     )
+    discover = commands.add_parser("discover", help="discover a repository configuration")
+    discover.add_argument("path", type=Path)
+
+    validate = commands.add_parser("validate", help="validate registry artifacts")
+    validate.add_argument("repository_id", nargs="?")
+
+    list_command = commands.add_parser("list", help="list registered repositories")
+    list_command.add_argument(
+        "--include-inactive",
+        action="store_true",
+        help="include archived and blocked repositories",
+    )
+
 
     audit = commands.add_parser("audit", help="read registry audit events")
     audit.add_argument("repository_id", nargs="?")
@@ -43,29 +71,67 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _build_service(registry_root: Path | None) -> RegistryService:
+def _build_service(registry_root: Path | None) -> RegistryServices:
     paths = RegistryPaths() if registry_root is None else RegistryPaths(registry_root)
-    return RegistryService(paths)
+    git = GitResolver()
+    store = JsonDocumentStore()
+    return RegistryServices(
+        RegistryService(paths, git=git),
+        RegistryQueryService(paths, git=git, store=store),
+        RegistryMigrationService(paths, store=store),
+    )
 
 
-def _initialize(service: RegistryService, _arguments: argparse.Namespace) -> int:
-    service.initialize()
+def _initialize(services: RegistryServices, _arguments: argparse.Namespace) -> int:
+    services.registration.initialize()
     print("Initialized agent registry.")
     return 0
 
 
-def _register(service: RegistryService, arguments: argparse.Namespace) -> int:
+def _register(services: RegistryServices, arguments: argparse.Namespace) -> int:
     path = cast(Path, arguments.path)
     review = not cast(bool, arguments.no_review)
-    record = service.register(path, review=review)
+    record = services.registration.register(path, review=review)
     print(f"Registered {record.id} ({record.git_remote}).")
     print(f"Managed configuration: {record.agent_config_path}")
     return 0
 
+def _report(label: str, report: ValidationReport) -> int:
+    if report.is_valid:
+        print(f"{label}: healthy.")
+        return 0
+    print(f"{label} found {len(report.issues)} issue(s).")
+    for issue in report.issues:
+        print(f"{issue.field}: {issue.message}")
+    return 1
 
-def _audit(service: RegistryService, arguments: argparse.Namespace) -> int:
+
+def _discover(services: RegistryServices, arguments: argparse.Namespace) -> int:
+    path = cast(Path, arguments.path)
+    result = services.query.discover(path)
+    print(f"Discovered {result.repository_id}.")
+    print(f"Managed configuration: {result.agent_config_path}")
+    return _report("Discovery", result.validation_report)
+
+
+def _validate(services: RegistryServices, arguments: argparse.Namespace) -> int:
     repository_id = cast(str | None, arguments.repository_id)
-    report = service.audit(repository_id)
+    return _report("Registry validation", services.query.validate(repository_id))
+
+
+def _list(services: RegistryServices, arguments: argparse.Namespace) -> int:
+    include_inactive = cast(bool, arguments.include_inactive)
+    records = services.query.list_repositories(include_inactive=include_inactive)
+    print(f"Repositories: {len(records)}")
+    for record in records:
+        print(f"{record.repository_id} ({record.status.value})")
+    return 0
+
+
+
+def _audit(services: RegistryServices, arguments: argparse.Namespace) -> int:
+    repository_id = cast(str | None, arguments.repository_id)
+    report = services.query.audit(repository_id)
     print(f"Audit events: {len(report.events)}")
     for event in report.events:
         print(f"{event.repository_id}: {event.operation} ({event.outcome})")
@@ -74,8 +140,8 @@ def _audit(service: RegistryService, arguments: argparse.Namespace) -> int:
     return 1 if report.issues else 0
 
 
-def _doctor(service: RegistryService, _arguments: argparse.Namespace) -> int:
-    report = service.doctor()
+def _doctor(services: RegistryServices, _arguments: argparse.Namespace) -> int:
+    report = services.query.doctor()
     if report.is_valid:
         print("Registry doctor: healthy.")
         return 0
@@ -85,20 +151,25 @@ def _doctor(service: RegistryService, _arguments: argparse.Namespace) -> int:
     return 1
 
 
-def _migrate(service: RegistryService, arguments: argparse.Namespace) -> int:
+def _migrate(services: RegistryServices, arguments: argparse.Namespace) -> int:
     repository_id = cast(str, arguments.repository_id)
     remote = cast(str | None, arguments.remote)
     local_path = cast(Path | None, arguments.local_path)
-    record = service.migrate(repository_id, git_remote=remote, local_path=local_path)
+    record = services.migration.migrate(
+        repository_id, git_remote=remote, local_path=local_path
+    )
     print(f"Migrated {record.id} ({record.git_remote}).")
     print(f"Local path: {record.local_path}")
     return 0
 
 
-def _dispatch(service: RegistryService, arguments: argparse.Namespace) -> int:
+def _dispatch(services: RegistryServices, arguments: argparse.Namespace) -> int:
     handlers: dict[str, CommandHandler] = {
         "initialize": _initialize,
         "register": _register,
+        "discover": _discover,
+        "validate": _validate,
+        "list": _list,
         "audit": _audit,
         "doctor": _doctor,
         "migrate": _migrate,
@@ -107,7 +178,7 @@ def _dispatch(service: RegistryService, arguments: argparse.Namespace) -> int:
     handler = handlers.get(command)
     if handler is None:
         raise RegistryError(f"unsupported command: {command}")
-    return handler(service, arguments)
+    return handler(services, arguments)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
