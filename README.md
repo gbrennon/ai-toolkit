@@ -10,7 +10,7 @@ Each skill is a reusable prompt fragment that teaches an agent a specific practi
 ```bash
 uv sync                    # install dependencies
 make install-cli           # install command-line tools, including agent-registry
-agent-registry initialize  # initialize the global agent registry
+agent-registry init      # initialize the global agent registry
 make install-mcp           # install & deploy MCP servers
 make install-skills        # install skills
 make install               # install everything
@@ -22,7 +22,7 @@ make install               # install everything
 |---------|-------------|
 | `make setup` | Install dependencies (`uv sync`) |
 | `make install-cli` | Install command-line tools, including `agent-registry` |
-| `agent-registry initialize` | Initialize the global agent registry |
+| `agent-registry init` | Initialize the global agent registry |
 | `make install-mcp` | Install MCP servers from `mcp/mcp.json` and deploy to all agents |
 | `make install-skills` | Install skills |
 | `make install` | Install everything (CLI + MCP + skills + hooks) |
