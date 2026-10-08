@@ -91,6 +91,7 @@ __all__ = [
     "HookReference",
     "HookExecutionResult",
     "IdentityCollisionError",
+    "InvalidOperationError",
     "JsonDocumentStore",
     "MalformedDocumentError",
     "MissingOriginError",
