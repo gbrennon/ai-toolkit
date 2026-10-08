@@ -1,5 +1,6 @@
 from .audit import AuditEventStore
 from .hooks import HookExecutor
+from .editor import RegistryEditor
 from .dependencies import (
     load_hooks,
     load_skills,
@@ -10,6 +11,10 @@ from .dependencies import (
 )
 from .errors import (
     AtomicWriteError,
+    EditorCommandEmptyError,
+    EditorExecutionError,
+    EditorNotConfiguredError,
+    EditorOutputEmptyError,
     GitResolutionError,
     IdentityCollisionError,
     MalformedDocumentError,
@@ -57,6 +62,7 @@ from .path_containment import PathContainment
 from .paths import RegistryPaths
 from .repository_paths import RepositoryPaths
 from .storage import AtomicWriter, JsonDocumentStore, NdjsonEventStore
+from .service import RegistryService
 from .validation import (
     parse_registry_document,
     parse_repository_record,
@@ -70,6 +76,10 @@ __all__ = [
     "AgentConfigFrontMatter",
     "AtomicWriteError",
     "AtomicWriter",
+    "EditorCommandEmptyError",
+    "EditorExecutionError",
+    "EditorNotConfiguredError",
+    "EditorOutputEmptyError",
     "AuditEvent",
     "AuditEventStore",
     "AuditReadReport",
@@ -87,6 +97,8 @@ __all__ = [
     "PathContainment",
     "PathEscapeError",
     "RegistryDocument",
+    "RegistryEditor",
+    "RegistryService",
     "RegistryError",
     "RegistryPaths",
     "RemoteIdentity",
