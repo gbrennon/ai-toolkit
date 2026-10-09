@@ -19,4 +19,4 @@ pull request operations.
 - A forge pull request merge targeting `main` is not a local merge.
 - Use the repository's default forge merge strategy and branch-deletion option.
 - Use git operations required by an authorized maintenance workflow.
-- Never skip hooks.
+- Never skip git hooks.
