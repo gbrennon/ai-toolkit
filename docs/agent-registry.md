@@ -30,9 +30,25 @@ targets in order:
 ~/.pi/agent/AGENTS.md
 ```
 
-If no candidate exists, discovery reports that no instructions were selected.
-The legacy rule source and installer remain available; adopting the registry is
-optional.
+If no candidate exists, resolution reports that no instructions were selected.
+The legacy rule source (`agent_rules/`) and installer (`install-agent-rules`)
+remain available; adopting the registry is optional.
+
+### Resolution boundary and API
+
+The precedence chain is exposed at two levels:
+
+- **Application API (`DiscoveryService.resolve_instructions`):** Resolves the
+  effective instruction source for *any* Git worktree, including unregistered
+  repositories and repositories without a canonical `origin` remote. It returns
+  an `InstructionResolution` with the ordered candidate sources and the selected
+  source, without requiring registry initialization or record mapping.
+- **CLI (`agent-registry discover`):** Validates a *registered* repository's
+  global artifacts and reports both its managed configuration path and its
+  effective instruction source. For an *unregistered* repository, `discover`
+  fails closed with an exit code of 1, as it requires a valid registry mapping.
+  The resolver returns paths; the host agent or calling harness is responsible
+  for loading the resolved instruction content.
 
 ## Initialize
 
