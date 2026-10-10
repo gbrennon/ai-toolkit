@@ -23,6 +23,7 @@ dev = [
 ]
 
 [project.scripts]
+agent-registry = "ai_toolkit.agent_registry.cli:main"
 ai-toolkit = "ai_toolkit:main"
 install-skills = "ai_toolkit.install_skills.main:main"
 install-mcp-servers = "ai_toolkit.install_mcp_servers.main:main"
