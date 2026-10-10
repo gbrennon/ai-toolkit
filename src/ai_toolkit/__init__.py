@@ -5,4 +5,6 @@ __version__ = "0.1.0"
 
 def main() -> None:
     """Run the toolkit command-line entry point."""
-    print("AI Toolkit")
+    from .cli import dispatch
+
+    raise SystemExit(dispatch())
