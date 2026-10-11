@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from unittest.mock import patch
 
@@ -10,15 +9,17 @@ from ai_toolkit.install_skills.main import main
 class TestMain:
     @pytest.mark.unit
     def test_main_when_skills_yaml_missing_then_returns_one(
-        self, tmp_path: Path
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        os.chdir(tmp_path)
+        monkeypatch.chdir(tmp_path)
         result = main()
         assert result == 1
 
     @pytest.mark.unit
-    def test_main_when_npx_not_available_then_returns_one(self, tmp_path: Path) -> None:
-        os.chdir(tmp_path)
+    def test_main_when_npx_not_available_then_returns_one(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
         (tmp_path / "skills.yaml").write_text("skills: []\n")
         with patch(
             "ai_toolkit.install_skills.main.shell_command_exists",
@@ -28,8 +29,10 @@ class TestMain:
             assert result == 1
 
     @pytest.mark.unit
-    def test_main_when_update_fails_then_returns_one(self, tmp_path: Path) -> None:
-        os.chdir(tmp_path)
+    def test_main_when_update_fails_then_returns_one(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
         (tmp_path / "skills.yaml").write_text("skills: []\n")
         with (
             patch(
@@ -45,8 +48,10 @@ class TestMain:
             assert result == 1
 
     @pytest.mark.unit
-    def test_main_when_all_succeed_then_returns_zero(self, tmp_path: Path) -> None:
-        os.chdir(tmp_path)
+    def test_main_when_all_succeed_then_returns_zero(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
         (tmp_path / "skills.yaml").write_text("skills: []\n")
         with (
             patch(
@@ -75,9 +80,9 @@ class TestMain:
 
     @pytest.mark.unit
     def test_main_when_remote_skills_fail_then_returns_one(
-        self, tmp_path: Path
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        os.chdir(tmp_path)
+        monkeypatch.chdir(tmp_path)
         (tmp_path / "skills.yaml").write_text("skills: []\n")
         with (
             patch(
@@ -101,8 +106,10 @@ class TestMain:
             assert result == 1
 
     @pytest.mark.unit
-    def test_main_when_local_skills_fail_then_returns_one(self, tmp_path: Path) -> None:
-        os.chdir(tmp_path)
+    def test_main_when_local_skills_fail_then_returns_one(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
         (tmp_path / "skills.yaml").write_text("skills: []\n")
         (tmp_path / "skills").mkdir()
         agents_dir = tmp_path / "agents"
@@ -136,8 +143,10 @@ class TestMain:
             assert result == 1
 
     @pytest.mark.unit
-    def test_main_when_local_dir_missing_then_skips_local(self, tmp_path: Path) -> None:
-        os.chdir(tmp_path)
+    def test_main_when_local_dir_missing_then_skips_local(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
         (tmp_path / "skills.yaml").write_text("skills: []\n")
         with (
             patch(
