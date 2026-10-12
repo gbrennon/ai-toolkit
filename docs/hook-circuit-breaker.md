@@ -9,8 +9,8 @@ session, working directory, and file.
 - The third consecutive failure opens the circuit.
 - Further attempts are rejected before running the quality checker.
 - Open-circuit failures emit one JSON object with `status` set to `terminal`.
-- Pi receives quality feedback through PostToolUse `additionalContext` and a
-  `continue: false` stop signal.
+- Pi and OMP receive quality feedback through their native TypeScript
+  `tool_result` hooks, which append failure diagnostics directly to the tool output.
 - Reading the affected file resets its circuit; the CLI also supports `reset`
   for explicit recovery.
 

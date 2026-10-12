@@ -37,7 +37,6 @@ install-provider-blocks:
 install-quality-cli:
 	mkdir -p $(HOME)/.local/bin $(HOME)/.config/ai-toolkit/semgrep
 	install -m 755 scripts/check-code-quality.sh $(HOME)/.local/bin/check-code-quality
-	install -m 755 scripts/check-modified-code-quality.sh $(HOME)/.local/bin/check-modified-code-quality
 	install -m 755 scripts/check_agent_artifacts.py $(HOME)/.local/bin/check_agent_artifacts.py
 	install -m 755 scripts/check_markdown_quality.py $(HOME)/.local/bin/check_markdown_quality.py
 	install -m 755 scripts/check_structural_quality.py $(HOME)/.local/bin/check_structural_quality.py
