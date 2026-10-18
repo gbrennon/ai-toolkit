@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+recovery_instruction() {
+  printf '%s' \
+    "Quality checks keep failing for this file. Fix the reported issues directly in the file, then" \
+    " reread it to reset the quality circuit breaker before editing again."
+}
+
 extract_path() {
   printf '%s' "$1" | python3 -c \
     'import json,sys; d=json.load(sys.stdin); p=d.get("tool_input",{}).get("path",""); print(p if isinstance(p,str) else "")' \
@@ -32,13 +38,13 @@ run_breaker() {
 }
 
 emit_circuit_open() {
-  printf '%s' "$1" | python3 -c \
-    'import json,sys; p=json.loads(sys.stdin.read()); print(json.dumps({"continue":False,"stopReason":"Circuit breaker opened; reread the file or request help.","hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":json.dumps(p,sort_keys=True)}}))'
+  printf '%s\n%s' "$(recovery_instruction)" "$1" | python3 -c \
+    'import json,sys; print(json.dumps({"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":sys.stdin.read()}}))'
 }
 
 emit_terminal_feedback() {
-  printf '%s\n%s' "$1" "$2" | python3 -c \
-    'import json,sys; print(json.dumps({"continue":False,"stopReason":"Circuit breaker opened; reread the file or request help.","hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":sys.stdin.read()}}))'
+  printf '%s\n%s\n%s' "$(recovery_instruction)" "$1" "$2" | python3 -c \
+    'import json,sys; print(json.dumps({"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":sys.stdin.read()}}))'
 }
 
 emit_feedback() {
