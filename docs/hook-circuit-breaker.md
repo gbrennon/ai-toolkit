@@ -9,8 +9,10 @@ session, working directory, and file.
 - The third consecutive failure opens the circuit.
 - Further attempts are rejected before running the quality checker.
 - Open-circuit failures emit one JSON object with `status` set to `terminal`.
-- Pi receives quality feedback through PostToolUse `additionalContext` and a
-  `continue: false` stop signal.
+- Terminal feedback uses passive PostToolUse `hookSpecificOutput.additionalContext`
+  containing recovery guidance and the quality or circuit-breaker diagnostics.
+- Terminal feedback leaves the active Pi model request alive and does not roll back
+  the completed edit.
 - Reading the affected file resets its circuit; the CLI also supports `reset`
   for explicit recovery.
 
@@ -26,6 +28,6 @@ The guard is deliberately separate from the quality checker. Install it with
 ## Limitation
 
 A PostToolUse hook cannot undo the completed tool action or force Pi or OMP to
-change strategy. It can stop later hook processing and provide the agent with a
-precise recovery instruction, reducing wasted retries while the runtime decides
-how to present or act on that result.
+change strategy. Terminal feedback leaves the active model request alive while
+providing a precise recovery instruction and diagnostics through passive
+`hookSpecificOutput.additionalContext`.
