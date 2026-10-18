@@ -5,6 +5,7 @@ SKILL = Path("skills/repo-maintenance.md").read_text()
 PR_INTERACTION = Path("skills/pr-interaction.md").read_text()
 GIT_GUIDANCE = Path("agent_rules/07-git-guidance.md").read_text()
 FINISHING = Path("skills/finishing-a-development-branch.md").read_text()
+START_REPO_MAINTENANCE = Path("skills/start-repo-maintenance.md").read_text()
 
 
 def test_maintenance_delegates_forge_operations() -> None:
@@ -68,6 +69,34 @@ def test_maintenance_tracks_post_merge_failures_and_cleanup() -> None:
     assert "follow-up issue" in SKILL
     assert "worktree" in SKILL
     assert "prune" in SKILL
+
+
+def test_maintenance_handles_post_merge_release_pull_requests() -> None:
+    assert "post-merge release" in SKILL
+    assert "CHANGELOG.md" in SKILL
+    assert "existing follow-up pull request" in SKILL
+    assert "second review loop" in SKILL
+    assert "no changelog or release convention" in SKILL
+
+
+def test_maintenance_accepts_tasks_during_an_active_loop() -> None:
+    assert "new task" in SKILL
+    assert "re-scope" in SKILL
+    assert "current pull request" in SKILL
+
+
+def test_maintenance_is_worktree_aware() -> None:
+    assert "git rev-parse --show-toplevel" in SKILL
+    assert "worktree-specific" in SKILL
+    assert "never assume the current directory" in SKILL
+
+
+def test_start_skill_starts_the_complete_maintenance_workflow() -> None:
+    assert "name: start-repo-maintenance" in START_REPO_MAINTENANCE
+    assert "invoke `repo-maintenance`" in START_REPO_MAINTENANCE
+    assert "task is missing" in START_REPO_MAINTENANCE
+    assert "ask the user" in START_REPO_MAINTENANCE
+    assert "new tasks" in START_REPO_MAINTENANCE
 
 
 def test_pr_interaction_owns_forge_selection_and_merge_commands() -> None:

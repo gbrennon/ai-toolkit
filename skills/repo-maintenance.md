@@ -12,7 +12,15 @@ Use `pr-interaction` for forge-specific pull-request operations.
 
 Use this skill for repository maintenance tasks that must finish through an open
 pull request. Continue until the pull request is approved, every suggestion is
-triaged, and all merge preconditions are verified.
+triaged, all merge preconditions are verified, and required post-merge release
+work is complete.
+
+When the user invokes this skill with a task, treat that task as the initial
+scope and start the workflow. If the task is missing, materially incomplete, or
+contradictory, ask the user to define or clarify it before changing files. If
+the user supplies a new task while the workflow is active, record it, classify
+it as in-scope or follow-up work, and re-scope the current pull request or
+create a follow-up pull request without losing the active review state.
 
 The workflow is autonomous for routine branch creation, commits, pushes, pull
 requests, review comments, issue tracking, and authorized forge merges. It never
@@ -69,6 +77,25 @@ queries, comments, issue triage, status checks, and merge commands.
 
 Know the task scope before coding. If the work comes from an issue, read its body
 and comments first. State the PR's scope, exclusions, and validation in its description.
+
+## Worktree and task ownership
+
+Resolve the repository root and current worktree before doing any work:
+
+```bash
+git rev-parse --show-toplevel
+git rev-parse --git-common-dir
+git branch --show-current
+git worktree list --porcelain
+```
+
+Use absolute paths for the selected worktree and its common Git directory.
+The workflow must never assume the current directory is the repository root or that another
+worktree has the same branch state. Keep worktree-specific state separate. Keep
+one pull request and one feature branch owner per worktree. Search the forge for
+an existing pull request from the current branch before opening another one.
+Preserve unrelated changes already present in the selected worktree and stop
+when the requested task cannot be separated safely from them.
 
 ## Step 1 — Reach the loop entry
 
@@ -165,7 +192,7 @@ to merge when configured CI is missing or unverified. An empty CI status respons
 is acceptable only when no CI workflows are configured and local quality gates
 have passed.
 
-## Step 6 — Track post-merge workflows
+## Step 6 — Track post-merge workflows and release follow-up work
 
 After merging, use `pr-interaction` to track workflows for the merge commit until
 each reaches a terminal state. If an initial workflow fails, perform two additional
@@ -175,6 +202,29 @@ If all three attempts fail, inspect logs and status details, record the likely
 cause, and create a follow-up issue whose next task implements the fix. Do not
 claim the maintenance loop is complete while the pipeline remains unhealthy.
 
-After the forge confirms the PR is merged, remove its worktree from a different
-working directory and prune stale worktree metadata. Never remove the worktree
-that contains the current session.
+After merge workflows succeed, perform a post-merge release inspection in the
+merged repository. Check the repository's documented conventions and files for
+`CHANGELOG.md`, changesets, release notes, versioning configuration, release
+automation, and recent merged pull requests. Determine whether the merged task
+requires a changelog or release update.
+
+When a release update is required:
+
+1. Search for an existing follow-up pull request before creating one.
+2. Create or reuse a worktree based on the latest default branch.
+3. Update the changelog or release artifact using the repository's convention.
+4. Run the normal quality and test gates.
+5. Open or update the follow-up pull request with links to the merged pull
+   request and the release rationale.
+6. Run the second review loop, including review triage, CI verification, and
+   merge preconditions.
+7. Merge the follow-up pull request through the forge when autonomous maintenance
+   is authorized, then track its post-merge workflows too.
+
+If the repository has no changelog or release convention, record that no
+follow-up pull request is required. Never invent a release format or create a
+duplicate follow-up pull request.
+
+After all required pull requests and workflows reach terminal states, remove
+completed worktrees from a different working directory and prune stale worktree
+metadata. Never remove the worktree that contains the current session.
