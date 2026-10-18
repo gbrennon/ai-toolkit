@@ -148,6 +148,32 @@ def test_send_notification_delivers_formatted_body() -> None:
     ]
 
 
+def test_send_notification_uses_critical_urgency_for_errors() -> None:
+    notification = Notification(
+        agent="omp",
+        event="error",
+        cwd=Path("/repo"),
+        identity=TmuxIdentity("session", "2", "ws-feat"),
+        message="task failed",
+    )
+    calls: list[tuple[Sequence[str], dict[str, object]]] = []
+
+    def fake_run(
+        args: Sequence[str], **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
+        calls.append((args, kwargs))
+        return subprocess.CompletedProcess(args=args, returncode=0)
+
+    delivered = send_notification(
+        notification,
+        run=fake_run,
+        find_command=lambda _: "/usr/bin/notify-send",
+    )
+
+    assert delivered is True
+    assert calls[0][0][0:3] == ["notify-send", "--urgency=critical", "omp error"]
+
+
 def test_send_notification_reports_missing_delivery_command() -> None:
     notification = Notification(
         agent="omp",
