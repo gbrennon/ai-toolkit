@@ -99,14 +99,16 @@ def send_notification(
     if find_command("notify-send") is None:
         return False
     active_run = subprocess.run if run is None else run
-    result = active_run(
+    arguments = ["notify-send"]
+    if notification.event == "error":
+        arguments.append("--urgency=critical")
+    arguments.extend(
         [
-            "notify-send",
             format_notification_title(notification),
             format_notification_body(notification),
-        ],
-        check=False,
+        ]
     )
+    result = active_run(arguments, check=False)
     return result.returncode == 0
 
 
