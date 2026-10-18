@@ -80,14 +80,40 @@ def test_failed_check_opens_circuit_after_repeated_attempts(tmp_path: Path) -> N
 
     first = run_wrapper(event, tmp_path, checker_status=1)
     second = run_wrapper(event, tmp_path, checker_status=1)
-    terminal = run_wrapper(event, tmp_path, checker_status=1)
+    terminal = run_wrapper(
+        event,
+        tmp_path,
+        fake_checker_output="violation",
+        checker_status=1,
+    )
+    open_circuit = run_wrapper(event, tmp_path, checker_status=1)
+
+    terminal_payload = json.loads(terminal.stdout)
+    terminal_output = terminal_payload["hookSpecificOutput"]
+    terminal_context = terminal_output["additionalContext"]
+    open_circuit_payload = json.loads(open_circuit.stdout)
+    open_circuit_output = open_circuit_payload["hookSpecificOutput"]
+    open_circuit_context = open_circuit_output["additionalContext"]
 
     assert first.returncode == 0
     assert second.returncode == 0
     assert terminal.returncode == 0
-    assert "circuit_breaker_open" in terminal.stdout
-    assert '"continue": false' in terminal.stdout
+    assert terminal_output["hookEventName"] == "PostToolUse"
+    assert "Quality checks keep failing" in terminal_context
+    assert "violation" in terminal_context
+    assert "circuit_breaker_open" in terminal_context
+    assert "decision" not in terminal_payload
+    assert "continue" not in terminal_payload
+    assert "stopReason" not in terminal_payload
+    assert open_circuit.returncode == 0
+    assert open_circuit_output["hookEventName"] == "PostToolUse"
+    assert "Quality checks keep failing" in open_circuit_context
+    assert "circuit_breaker_open" in open_circuit_context
+    assert "decision" not in open_circuit_payload
+    assert "continue" not in open_circuit_payload
+    assert "stopReason" not in open_circuit_payload
     assert terminal.stderr == ""
+    assert open_circuit.stderr == ""
 
 
 def test_missing_path_skips_quality_check(tmp_path: Path) -> None:
