@@ -81,3 +81,4 @@ The `mcp/mcp.json` template uses Jinja2 expressions — missing variables fall b
 | [docs/mcp-servers.md](docs/mcp-servers.md) | Full MCP server config reference: fields, deployment, platform scoping |
 | [docs/adding-agent-platforms.md](docs/adding-agent-platforms.md) | Step-by-step guide to add a new agent platform |
 | [docs/authoring-agent-rules.md](docs/authoring-agent-rules.md) | How to add and improve the rule files composed into AGENTS.md |
+| [docs/agent-registry.md](docs/agent-registry.md) | Agent registry and instruction precedence |

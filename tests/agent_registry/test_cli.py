@@ -5,14 +5,20 @@ from typing import cast
 import pytest
 
 import ai_toolkit.agent_registry.cli as cli
+from ai_toolkit.agent_registry.cli import RegistryServices
 from ai_toolkit.agent_registry.errors import InvalidOperationError
 from ai_toolkit.agent_registry.models import (
     AuditEvent,
     AuditReadReport,
+    DiscoveryResult,
+    InstructionResolution,
+    InstructionSource,
+    InstructionSourceKind,
     RepositoryRecord,
     RepositoryStatus,
     ValidationReport,
 )
+from ai_toolkit.agent_registry.query_service import RegistryQueryService
 from ai_toolkit.agent_registry.service import RegistryService
 
 INSTANT = datetime(2026, 1, 1, tzinfo=timezone.utc)
@@ -31,18 +37,27 @@ def _record(tmp_path: Path) -> RepositoryRecord:
     )
 
 
+def _discovery_result(tmp_path: Path) -> DiscoveryResult:
+    managed = (tmp_path / "AGENT.md").resolve()
+    source = InstructionSource(InstructionSourceKind.LOCAL, managed, True)
+    resolution = InstructionResolution((source,), source)
+    return DiscoveryResult("project", managed, ValidationReport(), resolution)
+
+
 class TestFakeService:
     def __init__(self, tmp_path: Path) -> None:
         self.record = _record(tmp_path)
         self.initialized = False
         self.registered: tuple[Path, bool] | None = None
         self.audited: str | None = None
+        self.discovered: Path | None = None
         self.migrated: tuple[str, str | None, Path | None] | None = None
         self.registration_error: InvalidOperationError | None = None
         self.audit_report = AuditReadReport(
             events=(AuditEvent(INSTANT, "register", "project", "1", "success", 0.1),),
         )
         self.doctor_report = ValidationReport()
+        self.discovery_result = _discovery_result(tmp_path)
 
     def initialize(self) -> None:
         self.initialized = True
@@ -52,6 +67,10 @@ class TestFakeService:
             raise self.registration_error
         self.registered = (path, review)
         return self.record
+
+    def discover(self, repository_path: Path) -> DiscoveryResult:
+        self.discovered = repository_path
+        return self.discovery_result
 
     def audit(self, repository_id: str | None = None) -> AuditReadReport:
         self.audited = repository_id
@@ -71,8 +90,11 @@ class TestFakeService:
 
 
 def _install_fake(monkeypatch: pytest.MonkeyPatch, fake: TestFakeService) -> None:
-    def factory(_root: Path | None) -> RegistryService:
-        return cast(RegistryService, fake)
+    def factory(_root: Path | None) -> RegistryServices:
+        return RegistryServices(
+            cast(RegistryService, fake),
+            cast(RegistryQueryService, fake),
+        )
 
     monkeypatch.setattr(cli, "_build_service", factory)
 
@@ -84,6 +106,7 @@ def test_help_lists_registry_commands(capsys: pytest.CaptureFixture[str]) -> Non
     assert result == 0
     assert "initialize" in output.out
     assert "register" in output.out
+    assert "discover" in output.out
     assert "audit" in output.out
     assert "doctor" in output.out
     assert "migrate" in output.out
@@ -117,6 +140,23 @@ def test_register_no_review_dispatches_path_without_editor(
     assert result == 0
     assert fake.registered == (repository, False)
     assert "Registered project" in output.out
+
+
+def test_discover_dispatches_path_and_reports_resolution(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fake = TestFakeService(tmp_path)
+    _install_fake(monkeypatch, fake)
+    repository = tmp_path / "repository"
+
+    result = cli.main(["discover", str(repository)])
+    output = capsys.readouterr()
+
+    assert result == 0
+    assert fake.discovered == repository
+    assert "Discovered project" in output.out
+    assert "Managed configuration:" in output.out
+    assert "Instructions: local" in output.out
 
 
 def test_audit_dispatches_repository_and_prints_events(
