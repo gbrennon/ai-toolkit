@@ -11,14 +11,14 @@ Use `pr-interaction` for forge-specific pull-request operations.
 ## Overview
 
 Use this skill for repository maintenance tasks that must finish through an open
-pull request. Continue until the pull request is approved, every suggestion is
-triaged, and all merge preconditions are verified.
+pull request. Continue until merge preconditions are verified, every review item
+is triaged, and every post-merge follow-up reaches a terminal state.
 
 The workflow is autonomous for routine branch creation, commits, pushes, pull
 requests, review comments, issue tracking, and authorized forge merges. It never
 pushes directly to or merges locally into the default branch. When the user
-authorizes autonomous maintenance, it may merge an approved pull request
-through the forge after review, CI, and synchronization gates pass.
+authorizes autonomous maintenance, it may merge a pull request through the forge
+after the review policy, CI, and synchronization gates pass.
 
 ## Autonomous Scope and Notifications
 
@@ -37,18 +37,23 @@ requesting confirmation for each branch, commit, test, push, or review action.
 
 ## Guardrails
 
-- Work on a conventional feature branch, never the default branch.
+- Work on an expressively named conventional feature branch, never the default branch.
+- Dedicate one branch to one pull request and name it after the change it makes.
+- Never put a number in a branch name unless it is an issue reference that
+  auto-closes that issue on merge.
 - Use Conventional Commits for every committed change.
 - Stage explicit paths and exclude session artifacts, credentials, and generated state.
 - Never ignore a quality-tool finding on a modified file.
-- Never merge without a fresh approval review.
-- Never merge when configured CI is failing, pending, or unavailable.
+- Require a fresh approval review only when the repository enforces required reviews.
+- Never merge while a configured CI workflow is failing, pending, or unverified.
+- Re-run a failing CI workflow before and after merge, then investigate repeats.
 - Use the repository's default merge strategy through the forge.
+- Always delete the merged branch on the remote and locally after merge.
 
 ## Workflow
 
 ```text
-prepare branch
+prepare an expressively named branch
   -> synchronize with default branch
   -> open or update pull request
   -> wait for current-head review
@@ -56,24 +61,28 @@ prepare branch
   -> fix blocking and in-scope items
   -> re-run quality checks and push
   -> repeat review loop
-  -> verify merge preconditions
+  -> keep pull-request CI green, re-running failed workflows
+  -> verify review policy and merge preconditions
   -> merge through the forge
-  -> track post-merge workflows
+  -> delete the remote and local branch
+  -> track post-merge workflows and auto-opened follow-ups
 ```
 
 ## Prerequisites
 
-Use `pr-interaction` before any forge operation. It selects the forge CLI from
-the repository remote, verifies its installed command surface, and owns pull-request
-queries, comments, issue triage, status checks, and merge commands.
+Use `pr-interaction` before any forge operation. It selects the forge CLI from the
+repository remote, verifies its installed command surface, and owns pull-request
+queries, comments, issue triage, status checks, workflow reruns, and merge commands.
 
 Know the task scope before coding. If the work comes from an issue, read its body
 and comments first. State the PR's scope, exclusions, and validation in its description.
 
 ## Step 1 — Reach the loop entry
 
-Work on a feature branch. Before opening or updating a pull request, pass this
-synchronization gate:
+Work on an expressively named feature branch dedicated to this one pull request.
+Name the branch after the change; add a number only when it is an issue reference
+that auto-closes that issue on merge. Before opening or updating a pull request,
+pass this synchronization gate:
 
 ```bash
 git status --porcelain
@@ -111,7 +120,7 @@ commits, and uses capped incremental backoff:
 
 When it reports a review, use `pr-interaction` to fetch the complete review and
 verify that its review commit matches the current PR head. A PR comment count is
-not a review verdict.
+not a review verdict. A review is not required on every repository; see Step 6.
 
 ## Step 3 — Triage review items
 
@@ -125,11 +134,12 @@ Classify each item by correctness, scope, and risk:
 | Valuable, large, or out-of-scope suggestion | Comment `create issue <ids>` on the PR. |
 | Incorrect, harmful, duplicate, or irrelevant suggestion | Comment `dismiss <ids>` on the PR. |
 
-An approved verdict does not eliminate suggestions. Use `pr-interaction` to post
-exactly one batched `create issue` or `dismiss` command in a pull-request
-comment, then verify the command outcome in the PR and issue list. Never
-manually invoke an issue-creation command and never use a direct issue-creation
-fallback.
+When `pr-auto-reviewer` posts the review, act only in this post-review phase and
+only through pull-request comment commands. The bot has no chat interface; it
+understands only `create issue <ids>` and `dismiss <ids>`. Post exactly one
+batched command per review, then verify the outcome in the PR and issue list.
+Never manually invoke an issue-creation command and never use a direct
+issue-creation fallback.
 
 ## Step 4 — Fix and re-loop
 
@@ -138,17 +148,35 @@ behavior changes. Run the relevant quality checks, then the full project gate.
 Commit focused changes, repeat the synchronization gate, and push the feature
 branch. A new review is required after every pushed change.
 
-Continue until the review is approved, every suggestion is triaged, and the
-remote PR head contains the verified changes.
+Continue until every review item is triaged and the remote PR head contains the
+verified changes.
 
-## Step 5 — Merge through the forge
+## Step 5 — Keep pull-request CI green
 
-Merge only when all of these conditions hold:
+Use `pr-interaction` to read the workflow runs for the current PR head. Apply this
+rerun policy to any failing workflow, before and after merge:
 
-1. A fresh review for the current head has verdict `Approve`.
+- Re-run the failed workflow and wait for the attempt to reach a terminal state.
+- Perform at most two additional rerun attempts when a flake is plausible.
+- Stop rerunning once the workflow passes.
+- When it keeps failing, inspect logs and status details and investigate the cause
+  instead of rerunning again.
+- Record the likely cause and open a tracking issue when the failure is real.
+
+A green run must match the current PR head. Do not advance to merge while a
+configured workflow is failing, pending, or unverified.
+
+## Step 6 — Merge through the forge
+
+First establish whether the repository requires an approving review. Use
+`pr-interaction` to read the branch-protection or merge policy; never infer it from
+forge-level `mergeable` alone. Then merge only when all of these hold:
+
+1. The review policy is satisfied: when the repository requires review, a fresh
+   review for the current head has verdict `Approve`; otherwise approval is not needed.
 2. Every finding is resolved or explicitly justified.
-3. Every suggestion is applied, dismissed with a reason, or linked to a tracking issue.
-4. Every configured CI check, workflow, and action is green.
+3. Every suggestion is applied, dismissed, or tracked with `create issue`.
+4. Every configured CI check, workflow, and action is green per Step 5.
 5. When no CI workflows are configured, local quality gates satisfy this condition.
 6. The PR branch is synchronized with the latest default branch.
 
@@ -160,20 +188,21 @@ Before merging, inspect the selected forge CLI:
 ```
 
 Use the merge command and branch-deletion flag documented there. Do not assume
-flags are portable between forge CLIs. Forge-level `mergeable` is not permission
-to merge when configured CI is missing or unverified. An empty CI status response
-is acceptable only when no CI workflows are configured and local quality gates
-have passed.
+flags are portable between forge CLIs. Forge-level `mergeable` is not permission to
+merge when configured CI is missing or unverified. After the forge confirms the
+merge, always delete the remote branch with the documented flag and delete the
+local branch; neither deletion is optional.
 
-## Step 6 — Track post-merge workflows
+## Step 7 — Track post-merge work
 
 After merging, use `pr-interaction` to track workflows for the merge commit until
-each reaches a terminal state. If an initial workflow fails, perform two additional
-rerun attempts and wait for each attempt to finish.
+each reaches a terminal state. Apply the Step 5 rerun-and-investigate policy to any
+post-merge failure. Do not claim the loop is complete while the pipeline remains
+unhealthy.
 
-If all three attempts fail, inspect logs and status details, record the likely
-cause, and create a follow-up issue whose next task implements the fix. Do not
-claim the maintenance loop is complete while the pipeline remains unhealthy.
+Always complete auto-opened post-merge work. Some repositories automatically open a
+follow-up pull request or issue after merge, such as a changelog update. Pick up
+each such item and run it through this same loop until it reaches a terminal state.
 
 After the forge confirms the PR is merged, remove its worktree from a different
 working directory and prune stale worktree metadata. Never remove the worktree
