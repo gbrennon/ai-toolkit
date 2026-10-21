@@ -29,8 +29,10 @@ class TestCliDispatcher:
         assert inspect.ismethod(ai_toolkit.main)
         assert isinstance(dispatch.__self__, ToolkitCli)
 
-    def test_dispatcher_covers_every_pyproject_script(self) -> None:
-        expected = self._expected_subcommands_from_pyproject()
+    def test_dispatcher_covers_every_pyproject_script_and_internal_commands(
+        self,
+    ) -> None:
+        expected = self._expected_subcommands_from_pyproject() | {"agent-registry"}
         assert set(COMMANDS.keys()) == expected
 
     def test_help_prints_all_subcommands(self) -> None:

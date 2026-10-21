@@ -59,11 +59,13 @@ For an existing pull request, retrieve these resources as needed:
   suggestions.
 - Pull-request comments to verify triage commands and issue links.
 - Commit statuses and workflow runs to verify CI explicitly.
+- Branch-protection or merge policy to learn whether an approving review is required.
 
 A review is fresh only when its review commit matches the current pull-request
-head. An empty, malformed, or unsupported status response is not green. Report
-CI as unavailable and keep the merge blocked until the repository policy is
-satisfied.
+head. Treat a malformed or unsupported status response as unverified, not green,
+and keep the merge blocked. An empty response is inconclusive on its own: confirm
+through the forge that the repository configures no CI workflows before reporting
+the local-gate fallback; otherwise treat it as unverified and keep merge blocked.
 
 ## Waiting for reviews
 
@@ -76,6 +78,13 @@ agent-hook-pr-review <PR-URL | owner/repo/number> --listen
 The hook captures the current head before polling and uses capped incremental
 backoff. Use `agent-hook-pr-review` for waiting; use the forge review resource
 for complete review content and freshness verification.
+
+## Re-running workflows
+
+Read the workflow runs for a commit and re-run any failed run through the
+forge. Wait for each rerun to reach a terminal state. When a run keeps failing,
+read its logs and status details so `repo-maintenance` can investigate the cause
+instead of rerunning again.
 
 ## Review retrieval and triage
 
@@ -100,6 +109,10 @@ Here, `<ids>` is the comma-separated review suggestion list, for example
 suggestion. Never invoke an issue creation command manually and never create or
 dismiss suggestions outside the pull-request comment command.
 
+The `pr-auto-reviewer` bot has no chat interface. It reads only `create issue
+<ids>` and `dismiss <ids>` commands posted as pull-request comments, so never
+answer it in prose.
+
 Verify the command outcome in the pull-request comments and issue list. If the
 command is not processed within the documented wait, keep the command comment
 as the recorded triage decision and report the unprocessed state. Do not use a
@@ -116,6 +129,9 @@ Use the selected forge to perform these operations:
 - Post comments for review commands, triage rationale, and blockers.
 - Inspect the installed merge command before merging.
 - Use the repository default merge strategy and documented branch-deletion flag.
+- Read the branch-protection or merge policy to learn whether review is required.
+- Re-run a failed workflow run and read its logs when it keeps failing.
+- Delete the remote branch after merge with the documented branch-deletion flag.
 
 `repo-maintenance` decides whether merge preconditions are satisfied. This skill
 must not treat forge-level mergeability as permission to merge.

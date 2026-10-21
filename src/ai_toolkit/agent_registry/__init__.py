@@ -1,6 +1,9 @@
 from .audit import AuditEventStore
 from .hooks import HookExecutor
 from .editor import RegistryEditor
+from .discovery import DiscoveryService
+from .instruction_resolver import InstructionResolver
+from .instruction_targets import GlobalInstructionTargets
 from .dependencies import (
     load_hooks,
     load_skills,
@@ -48,6 +51,10 @@ from .models import (
     AgentConfigFrontMatter,
     AuditEvent,
     AuditReadReport,
+    DiscoveryResult,
+    InstructionResolution,
+    InstructionSource,
+    InstructionSourceKind,
     HookDefinition,
     HookExecutionResult,
     HookReference,
@@ -62,6 +69,7 @@ from .models import (
 from .path_containment import PathContainment
 from .paths import RegistryPaths
 from .repository_paths import RepositoryPaths
+from .query_service import RegistryQueryService
 from .service import RegistryService
 from .storage import AtomicWriter, JsonDocumentStore, NdjsonEventStore
 from .validation import (
@@ -84,9 +92,15 @@ __all__ = [
     "AuditEvent",
     "AuditEventStore",
     "AuditReadReport",
+    "DiscoveryResult",
+    "DiscoveryService",
+    "RegistryQueryService",
     "GitResolutionError",
     "GitResolver",
     "HookExecutor",
+    "InstructionResolution",
+    "InstructionSource",
+    "InstructionSourceKind",
     "HookDefinition",
     "HookReference",
     "HookExecutionResult",
@@ -101,6 +115,8 @@ __all__ = [
     "RegistryDocument",
     "RegistryEditor",
     "RegistryError",
+    "InstructionResolver",
+    "GlobalInstructionTargets",
     "RegistryService",
     "RegistryPaths",
     "RemoteIdentity",

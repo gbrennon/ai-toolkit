@@ -9,10 +9,15 @@ session, working directory, and file.
 - The third consecutive failure opens the circuit.
 - Further attempts are rejected before running the quality checker.
 - Open-circuit failures emit one JSON object with `status` set to `terminal`.
+<<<<<<< HEAD
 - Terminal feedback uses passive PostToolUse `hookSpecificOutput.additionalContext`
   containing recovery guidance and the quality or circuit-breaker diagnostics.
 - Terminal feedback leaves the active Pi model request alive and does not roll back
   the completed edit.
+=======
+- Pi and OMP receive quality feedback through their native TypeScript
+  `tool_result` hooks, which append failure diagnostics directly to the tool output.
+>>>>>>> 847ce462f7bcc7bbe447ca7a563c8eaa71ff041f
 - Reading the affected file resets its circuit; the CLI also supports `reset`
   for explicit recovery.
 

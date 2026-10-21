@@ -1,6 +1,10 @@
 from .agent_config_front_matter import AgentConfigFrontMatter
 from .audit_event import AuditEvent
 from .audit_read_report import AuditReadReport
+from .discovery_result import DiscoveryResult
+from .instruction_resolution import InstructionResolution
+from .instruction_source import InstructionSource
+from .instruction_source_kind import InstructionSourceKind
 from .hook_execution_result import HookExecutionResult
 from .hook_definition import HookDefinition
 from .hook_reference import HookReference
@@ -16,6 +20,10 @@ __all__ = [
     "AgentConfigFrontMatter",
     "AuditEvent",
     "AuditReadReport",
+    "DiscoveryResult",
+    "InstructionResolution",
+    "InstructionSource",
+    "InstructionSourceKind",
     "HookExecutionResult",
     "HookDefinition",
     "HookReference",
